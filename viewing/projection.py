@@ -1,0 +1,42 @@
+import torch
+import math
+
+class Projection:
+    def __init__(self, render):
+        self.device = render.device
+        NEAR = render.camera.near_plane
+        FAR = render.camera.far_plane
+        RIGHT = math.tan(render.camera.h_fov / 2)
+        LEFT = -RIGHT
+        TOP = math.tan(render.camera.v_fov / 2)
+        BOTTOM = -TOP
+
+        m00 = 2 / (RIGHT - LEFT)
+        m11 = 2 / (TOP - BOTTOM)
+        m22 = (FAR + NEAR) / (FAR - NEAR)
+        m32 = -2 * NEAR * FAR / (FAR - NEAR)
+        self.projection_matrix = torch.tensor([
+            [m00, 0, 0, 0],
+            [0, m11, 0, 0],
+            [0, 0, m22, 1],
+            [0, 0, m32, 0]
+        ], dtype=torch.float32)
+
+        HW, HH = render.H_WIDTH, render.H_HEIGHT
+
+        self.to_screen_matrix = torch.tensor([
+            [HW, 0, 0, 0],
+            [0, -HH, 0, 0],
+            [0, 0, 1, 0],
+            [HW, HH, 0, 1]
+        ], dtype=torch.float32)
+
+    def get_projection_matrix(self):
+        if self.device.type == 'cuda':
+            return self.projection_matrix.to(self.device)
+        return self.projection_matrix
+
+    def get_to_screen_matrix(self):
+        if self.device.type == 'cuda':
+            return self.to_screen_matrix.to(self.device)
+        return self.to_screen_matrix
