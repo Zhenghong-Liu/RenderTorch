@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在相同网格、固定条件和碰撞体下观察稳定性、误差与计算成本。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>三种布料算法的比较 · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="../chapters/chapter09.html" aria-current="page"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <article class="content">
+      <header>
+        <p class="eyebrow">Chapter 09 / 12</p>
+        <h1>三种布料算法的比较</h1>
+        <p class="lede">在相同网格、固定条件和碰撞体下观察稳定性、误差与计算成本。</p>
+        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>4</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
+      </header>
+
+      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
+<p>三种算法不是同一公式的三种写法。质点弹簧直接积分力，PBD 直接修正位置，XPBD 用乘子表达有限柔度。比较时应固定初始位置、时间步、重力、拓扑和显示模式。</p>
+<p>下面的交互 Demo 是浏览器中的简化二维类比，用于观察趋势，不是 Qt 求解器的逐像素复刻。桌面程序使用第 6–8 章链接的真实 Python 实现。</p>
+</div></section>
+      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
+<div class="formula">质量弹簧：更新力 → 更新速度 → 更新位置<br>PBD：预测位置 → 迭代投影 → 重建速度<br>XPBD：预测位置 → 带 λ 与 α 的投影 → 重建速度</div>
+<p>公平比较需要同时报告误差和耗时。更低的误差可能来自更多迭代，而不一定来自更好的算法。</p>
+</div></section>
+      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for algorithm in [mass_spring, pbd, xpbd]:
+    使用相同 cloth_grid 与 colliders
+    运行相同步数
+    记录 finite、max_speed、constraint_error、step_ms
+    在 solid / wireframe / particles 三种视图下观察</code></pre></div></section>
+      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/physics_controller.py"><span>app/physics_controller.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_mass_spring.py"><span>tests/test_cloth_mass_spring.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_pbd.py"><span>tests/test_cloth_pbd.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_xpbd.py"><span>tests/test_cloth_xpbd.py</span>↗</a></div></section>
+      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
+<div id="comparison-demo" class="comparison-demo">
+  <div class="demo-toolbar">
+    <button id="play-comparison" type="button">暂停</button>
+    <button id="reset-comparison" type="button">重置</button>
+    <label>迭代 <output id="iterations-output">8</output><input id="comparison-iterations" type="range" min="1" max="20" value="8"></label>
+    <label>柔度 <output id="compliance-output">1.0e-6</output><input id="comparison-compliance" type="range" min="-8" max="-3" step="0.5" value="-6"></label>
+  </div>
+  <div class="comparison-grid">
+    <figure><canvas data-comparison-canvas data-algorithm="mass_spring" width="320" height="280"></canvas><figcaption>质量弹簧 <output data-error>0.0000</output></figcaption></figure>
+    <figure><canvas data-comparison-canvas data-algorithm="pbd" width="320" height="280"></canvas><figcaption>PBD <output data-error>0.0000</output></figcaption></figure>
+    <figure><canvas data-comparison-canvas data-algorithm="xpbd" width="320" height="280"></canvas><figcaption>XPBD <output data-error>0.0000</output></figcaption></figure>
+  </div>
+  <p class="demo-caption">显示值为平均相对约束误差。拖动参数后重置，可重复比较相同初始状态。</p>
+</div>
+</div></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>质点弹簧</dt><dd>受力直观；高刚度需小步长</dd></div><div class="metric"><dt>PBD</dt><dd>稳定易实现；stiffness 不够物理</dd></div><div class="metric"><dt>XPBD</dt><dd>柔度可解释；需要乘子状态</dd></div></dl></section>
+      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>比较结果不可重复：确认每个算法从完全相同的初始状态开始。</li><li>把 Qt 参数直接搬进浏览器会得到不同数值：浏览器 Demo 故意简化了维度。</li><li>只比较截图不比较误差：增加线框视图并记录数值指标。</li></ol></div></section>
+      <nav class="page-nav" aria-label="章节导航"><a href="chapter08.html"><small>← 上一章</small>XPBD：柔度与拉格朗日乘子</a><a href="chapter10.html"><small>下一章 →</small>刚体与软体 Demo</a></nav>
+    </article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

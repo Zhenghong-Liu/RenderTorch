@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用半隐式欧拉推进状态，用子步和累加器保持时间一致。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>物理模拟基础：粒子、时间步和积分 · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="../chapters/chapter05.html" aria-current="page"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <article class="content">
+      <header>
+        <p class="eyebrow">Chapter 05 / 12</p>
+        <h1>物理模拟基础：粒子、时间步和积分</h1>
+        <p class="lede">用半隐式欧拉推进状态，用子步和累加器保持时间一致。</p>
+        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
+      </header>
+
+      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
+<p>一个动态粒子由位置、速度和逆质量描述。逆质量为 0 的粒子被固定；其余粒子接受重力、阻尼、碰撞与约束产生的速度变化。</p>
+<p>固定时间步让模拟不依赖帧率。累加器保存“还没模拟完的真实时间”，每次取出一个 <code>h</code>；渲染帧可以快也可以慢，但单个物理步的长度保持一致。</p>
+<div class="callout"><strong>为什么先更新速度：</strong>半隐式欧拉使用更新后的速度计算新位置，比显式欧拉更早看到重力影响，对简单摆和弹簧通常更稳定。</div>
+</div></section>
+      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
+<div class="formula">v ← v + (g + F / m) h<br>x ← x + v h<br>h = fixed_dt / substeps</div>
+<p>阻尼实现为 <code>v ← v · exp(−c h)</code>。指数形式在较大时间步下仍保持非负衰减。</p>
+</div></section>
+      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>accumulator += min(frame_dt, 0.25)
+while accumulator &gt;= fixed_dt:
+    accumulator -= fixed_dt
+    for substep in range(substeps):
+        h = fixed_dt / substeps
+        apply_gravity_and_damping(h)
+        integrate_positions(h)
+        solve_constraints(h)
+        collide(h)</code></pre></div></section>
+      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/state.py"><span>physics/common/state.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/colliders.py"><span>physics/common/colliders.py</span>↗</a></div></section>
+      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
+<svg viewBox="0 0 720 240" role="img" aria-label="固定时间步累加器">
+  <rect x="45" y="35" width="630" height="75" rx="12" class="svg-grid"/>
+  <g stroke="currentColor" stroke-width="2"><path d="M85 72 H630"/><path d="M150 55 V90"/><path d="M255 55 V90"/><path d="M360 55 V90"/><path d="M465 55 V90"/><path d="M570 55 V90"/></g>
+  <g fill="var(--accent)"><rect x="85" y="63" width="65" height="18" rx="5"/><rect x="255" y="63" width="105" height="18" rx="5"/><rect x="465" y="63" width="105" height="18" rx="5"/></g>
+  <text x="82" y="155">每格 = 1/120 s；渲染帧只需把时间倒入累加器</text><text x="82" y="190">单步、暂停和重置共用同一条 _substep 路径</text>
+</svg>
+</div></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>固定步长</dt><dd>1/120 s</dd></div><div class="metric"><dt>子步</dt><dd>2</dd></div><div class="metric"><dt>帧时间上限</dt><dd>0.25 s，防止卡顿后追帧爆炸</dd></div></dl></section>
+      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>不同帧率结果差异大：检查是否直接用 frame_dt 积分。</li><li>重置后第一步不一致：检查初始状态是否被原地修改。</li><li>固定粒子漂移：确认 inverse_mass 为 0，且碰撞投影遵守权重。</li></ol></div></section>
+      <nav class="page-nav" aria-label="章节导航"><a href="chapter04.html"><small>← 上一章</small>软件光栅化与 Qt 图像显示</a><a href="chapter06.html"><small>下一章 →</small>质点弹簧布料模型</a></nav>
+    </article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>
