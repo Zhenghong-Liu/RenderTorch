@@ -3,6 +3,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+import numpy as np
 from PySide6.QtCore import QPoint, QPointF, QSize, Qt
 from PySide6.QtGui import QImage, QResizeEvent, QWheelEvent
 from PySide6.QtTest import QTest
@@ -60,7 +61,20 @@ class ViewportTests(unittest.TestCase):
 
         self.assertGreater(self.controller.camera.distance, distance)
 
+    @staticmethod
+    def _foreground_size(image):
+        bits = image.bits()
+        pixels = np.frombuffer(bits, dtype=np.uint8).reshape(
+            image.height(),
+            image.width(),
+            4,
+        )
+        background = pixels[0, 0, :3]
+        ys, xs = np.where(np.any(pixels[:, :, :3] != background, axis=2))
+        return xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
+
     def test_resize_rerenders_with_new_aspect(self):
+        before = self._foreground_size(self.viewport.image)
         self.viewport.resize(640, 300)
         QApplication.sendEvent(
             self.viewport,
@@ -69,6 +83,9 @@ class ViewportTests(unittest.TestCase):
 
         self.assertEqual(self.viewport.image.size().width(), 640)
         self.assertEqual(self.viewport.image.size().height(), 300)
+        after = self._foreground_size(self.viewport.image)
+        self.assertAlmostEqual(after[0], before[0], delta=2)
+        self.assertAlmostEqual(after[1], before[1], delta=2)
 
 
 class ControllerTests(unittest.TestCase):

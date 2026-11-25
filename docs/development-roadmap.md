@@ -32,7 +32,7 @@ PySide6 界面层
   主窗口 / 属性面板 / 物理控制面板 / 快捷键 / 视口控件
                          ↓
 AppController
-  场景操作 / 命令分发 / 模拟控制 / 撤销与重做
+  场景操作 / 命令分发 / 模拟控制
                          ↓
 Scene Core
   场景图 / 对象 ID / 变换 / 网格资源 / 材质 / 选择状态
@@ -51,11 +51,11 @@ PyTorch 计算层                  软件渲染层
 | 模块 | 主要职责 | 约束 |
 |---|---|---|
 | `app` | Qt 主窗口、面板、视口控件、输入事件 | 不保存核心业务状态 |
-| `core` | 场景对象、父子关系、选择、命令历史 | 不导入 Qt、Pygame 或窗口 API |
+| `core` | 场景对象、对象 ID、变换、网格资源、材质、选择状态 | 不导入 Qt、Pygame 或窗口 API |
 | `compute` | PyTorch 矩阵运算、投影、物理数值计算 | 不处理 UI 事件 |
-| `render` | 软件光栅化、FrameBuffer、深度与 ID 缓冲 | 不管理场景生命周期 |
+| `renderer` | 软件光栅化、FrameBuffer、深度与 ID 缓冲 | 不管理场景生命周期 |
 | `physics` | 刚体、布料、软体与公共模拟数据结构 | 算法之间保持独立 |
-| `io` | 项目保存/加载、资源导入 | 不依赖界面控件 |
+| `io` | 后续扩展：项目保存/加载、资源导入 | 本期不实现，不依赖界面控件 |
 | `book` | HTML 讲解书源文件与静态资源 | 不混入运行时代码 |
 
 ### 2.3 关键技术决策
@@ -66,7 +66,8 @@ PyTorch 计算层                  软件渲染层
 - 不要求开发者编写 OpenGL，视口继续采用自定义软件渲染。
 - PyTorch 用于熟悉的矩阵运算和批量物理数值计算，不默认引入 autograd。
 - Scene 是唯一数据源；视口、属性面板和对象列表都读取同一份状态。
-- 所有用户修改通过 Command 进入 Scene，拖拽时实时预览，结束后记录一次撤销命令。
+- 当前物理参数由 Controller 转换并写入模拟对象；未来对象编辑功能再引入 Command 与撤销重做。
+- 父子层级、Command/撤销重做和 `io` 保存加载属于后续编辑能力，本期最小闭环与物理主线不承诺交付。
 - 暂不实现完整拾取系统、Gizmo 和编辑器面板，待物理主线完成后再扩展。
 
 ## 3. 阶段一：最小闭环
@@ -244,15 +245,15 @@ https://walkinglabs.github.io/hands-on-modern-rl/chapter01_cartpole/metrics
 ```text
 RenderTorch/
 ├── app/                 # Qt 界面与输入
-├── core/                # Scene、选择、Command、Undo
+├── core/                # Scene、选择、对象 ID、变换
 ├── compute/             # PyTorch 矩阵与投影
-├── render/              # 软件光栅化与 FrameBuffer
+├── renderer/            # 软件光栅化与 FrameBuffer
 ├── physics/
 │   ├── common/          # 粒子、碰撞体、时间步
 │   ├── rigidbody/       # 简化刚体
 │   ├── cloth/           # 质点弹簧、PBD、XPBD
 │   └── softbody/        # 简化软体
-├── io/                  # 项目与资源导入导出
+├── io/                  # 后续扩展：项目与资源导入导出
 ├── book/                # HTML 讲解书
 ├── tests/               # 数学、渲染、物理测试
 ├── resources/           # 内置模型与静态资源
