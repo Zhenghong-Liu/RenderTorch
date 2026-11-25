@@ -98,7 +98,7 @@ def home_page(prefix=""):
       <section class="section" id="metrics">
         <div class="section-label">当前基线</div>
         <dl class="metric-grid">
-          <div class="metric"><dt>自动化测试</dt><dd>102 项通过</dd></div>
+          <div class="metric"><dt>自动化测试</dt><dd>88 项通过</dd></div>
           <div class="metric"><dt>默认物理步长</dt><dd>1/120 s · 2 子步</dd></div>
           <div class="metric"><dt>显示模式</dt><dd>实体 / 线框 / 粒子</dd></div>
         </dl>
