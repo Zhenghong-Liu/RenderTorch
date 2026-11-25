@@ -72,7 +72,7 @@ change_one_parameter_and_repeat()</code></pre></div></section>
   <path d="M620 160 V220 H95 V160" fill="none" stroke="var(--warm)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow1)"/><text x="245" y="247">一次只改一个变量，保留可重复测试</text>
 </svg>
 </div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>完整测试</dt><dd>102 项通过</dd></div><div class="metric"><dt>默认布料</dt><dd>约 0.59 ms/step（本机测量）</dd></div><div class="metric"><dt>XPBD / 软体</dt><dd>顺序循环成本更高，需单独测量</dd></div></dl></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>完整测试</dt><dd>88 项通过</dd></div><div class="metric"><dt>默认布料</dt><dd>约 0.59 ms/step（本机测量）</dd></div><div class="metric"><dt>XPBD / 软体</dt><dd>顺序循环成本更高，需单独测量</dd></div></dl></section>
       <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>先检查是否 finite，再判断误差大小；NaN 时后续指标没有意义。</li><li>不要通过放大 clamp 隐藏位置爆炸，应回溯稳定时间步。</li><li>优化顺序求解前先保留参考输出，避免性能提升改变算法行为。</li></ol></div></section>
       <nav class="page-nav" aria-label="章节导航"><a href="chapter10.html"><small>← 上一章</small>刚体与软体 Demo</a><a href="chapter12.html"><small>下一章 →</small>后续扩展方向</a></nav>
     </article>
