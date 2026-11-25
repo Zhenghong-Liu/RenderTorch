@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RenderTorch 中文教学书：软件渲染、三种布料算法、刚体与软体。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <title>从像素到物理 · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="index.html" aria-current="page"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <div class="content">
+      <section class="hero">
+        <p class="eyebrow">从像素到物理 · 中文交互教学书</p>
+        <h1>看清 3D 画面与物理模拟的每一步</h1>
+        <p class="lede">沿着真实 Python 源码，从轨道相机、齐次裁剪和深度缓冲出发，逐步走到三种布料算法、刚体碰撞与软体体积约束。</p>
+        <a class="primary-link" href="chapters/chapter01.html">从第 1 章开始 →</a>
+      </section>
+
+      <section class="section" id="overview">
+        <div class="section-label">项目全景</div>
+        <div class="prose"><h2>不是黑盒演示，而是一条可检查的因果链</h2>
+          <p>RenderTorch 是一个模块化单体：Qt 只负责界面，Scene 保存状态，PyTorch 执行数值计算，软件渲染器生成 FrameBuffer。每种物理方法都有独立实现、可重复初始状态和自动化测试。</p>
+        </div>
+        <div class="milestone-grid" style="margin-top:1.4rem"><article class="milestone"><span class="status">M1–M2 · 已完成</span><h3>显示与时间基础</h3><p>Qt 最小闭环、软件渲染、固定时间步与碰撞投影。</p></article><article class="milestone"><span class="status">M3–M5 · 已完成</span><h3>三种布料算法</h3><p>质量弹簧、PBD、XPBD 共享拓扑并可直接切换。</p></article><article class="milestone"><span class="status">M6 · 已完成</span><h3>刚体与软体</h3><p>球体冲量、摩擦、距离约束和四面体体积保持。</p></article></div>
+      </section>
+
+      <section class="section" id="metrics">
+        <div class="section-label">当前基线</div>
+        <dl class="metric-grid">
+          <div class="metric"><dt>自动化测试</dt><dd>102 项通过</dd></div>
+          <div class="metric"><dt>默认物理步长</dt><dd>1/120 s · 2 子步</dd></div>
+          <div class="metric"><dt>显示模式</dt><dd>实体 / 线框 / 粒子</dd></div>
+        </dl>
+      </section>
+
+      <section class="section" id="chapters">
+        <div class="section-label">12 章阅读路线</div>
+        <div class="prose"><h2>先建立最小闭环，再替换求解方法</h2>
+          <p>第 1–5 章建立共同语言；第 6–9 章深入布料；第 10–12 章连接刚体、软体、性能与后续扩展。每章都包含公式、伪代码、真实源码、图示、指标和调试清单。</p>
+        </div>
+        <div class="chapter-grid" style="margin-top:1.4rem"><a class="chapter-card" href="chapters/chapter01.html"><span class="chapter-number">01</span><span><strong>为什么从零搭建 3D 与物理教学项目</strong><small>先确定学习目标与边界，再决定需要自己实现什么。</small></span></a><a class="chapter-card" href="chapters/chapter02.html"><span class="chapter-number">02</span><span><strong>总体架构与模块边界</strong><small>一个进程、清晰分层，让 UI、场景、计算与求解器各自保持简单。</small></span></a><a class="chapter-card" href="chapters/chapter03.html"><span class="chapter-number">03</span><span><strong>最小闭环：相机、投影和 FrameBuffer</strong><small>把三维坐标经过视图、投影和视口变换送到像素平面。</small></span></a><a class="chapter-card" href="chapters/chapter04.html"><span class="chapter-number">04</span><span><strong>软件光栅化与 Qt 图像显示</strong><small>裁剪三角形、判断像素覆盖、用深度测试决定谁可见。</small></span></a><a class="chapter-card" href="chapters/chapter05.html"><span class="chapter-number">05</span><span><strong>物理模拟基础：粒子、时间步和积分</strong><small>用半隐式欧拉推进状态，用子步和累加器保持时间一致。</small></span></a><a class="chapter-card" href="chapters/chapter06.html"><span class="chapter-number">06</span><span><strong>质点弹簧布料模型</strong><small>把布看作粒子网络，用结构、剪切和弯曲弹簧产生恢复力。</small></span></a><a class="chapter-card" href="chapters/chapter07.html"><span class="chapter-number">07</span><span><strong>PBD：位置约束与迭代求解</strong><small>不直接求弹簧力，而是反复把粒子投影回距离约束允许的位置。</small></span></a><a class="chapter-card" href="chapters/chapter08.html"><span class="chapter-number">08</span><span><strong>XPBD：柔度与拉格朗日乘子</strong><small>在 PBD 投影中加入 compliance，让“软硬”具备时间步一致的物理含义。</small></span></a><a class="chapter-card" href="chapters/chapter09.html"><span class="chapter-number">09</span><span><strong>三种布料算法的比较</strong><small>在相同网格、固定条件和碰撞体下观察稳定性、误差与计算成本。</small></span></a><a class="chapter-card" href="chapters/chapter10.html"><span class="chapter-number">10</span><span><strong>刚体与软体 Demo</strong><small>刚体保持形状，软体用距离和四面体体积约束抵抗变形。</small></span></a><a class="chapter-card" href="chapters/chapter11.html"><span class="chapter-number">11</span><span><strong>性能、稳定性与局限性</strong><small>先测量，再优化；把 NaN、能量增长和约束误差当作诊断信号。</small></span></a><a class="chapter-card" href="chapters/chapter12.html"><span class="chapter-number">12</span><span><strong>后续扩展方向</strong><small>沿现有边界扩展，而不是重写整个系统。</small></span></a></div>
+      </section>
+
+      <section class="section" id="reading">
+        <div class="section-label">使用方式</div>
+        <div class="prose"><h2>把书与桌面程序放在一起读</h2>
+          <p>先运行 <code>python main_qt.py</code>，在右侧面板切换模拟类型和布料算法。阅读第 6–9 章时保持相同初始状态，切换线框与实体视图，并把单步误差与书中指标对照。</p>
+          <p>第 9 章的浏览器交互示例可以暂停、重置并调整迭代与柔度。它用于展示趋势；精确算法行为以 GitHub 上的 Python 源码和测试为准。</p>
+        </div>
+      </section>
+    </div>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

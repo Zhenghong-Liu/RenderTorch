@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="裁剪三角形、判断像素覆盖、用深度测试决定谁可见。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>软件光栅化与 Qt 图像显示 · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="../chapters/chapter04.html" aria-current="page"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <article class="content">
+      <header>
+        <p class="eyebrow">Chapter 04 / 12</p>
+        <h1>软件光栅化与 Qt 图像显示</h1>
+        <p class="lede">裁剪三角形、判断像素覆盖、用深度测试决定谁可见。</p>
+        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>4</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
+      </header>
+
+      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
+<p>软件渲染器逐个三角形工作。齐次裁剪先删除视锥外几何并生成新交点，透视除法后计算屏幕包围盒，最后用重心坐标判断像素是否落在三角形内。</p>
+<p>每个候选像素都比较深度。更近的像素写入颜色、深度和物体 ID；更远的像素被拒绝。ID 缓冲让“这一像素属于哪个对象”可以独立于颜色被检查。</p>
+<div class="callout"><strong>线框的特殊处理：</strong>一条线段穿过近裁剪面时可能变成两个端点。参数化裁剪保证返回的仍是有限线段，而不是重复顶点。</div>
+</div></section>
+      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
+<div class="formula">λ<sub>1</sub> + λ<sub>2</sub> + λ<sub>3</sub> = 1，λ<sub>i</sub> ≥ 0<br>z<sub>pixel</sub> = λ<sub>1</sub>z<sub>1</sub> + λ<sub>2</sub>z<sub>2</sub> + λ<sub>3</sub>z<sub>3</sub><br>写入条件：z<sub>pixel</sub> &lt; depth[x, y]</div>
+<p>深度测试不是“最后画的盖住先画的”，因此对象添加顺序不应改变遮挡结果。</p>
+</div></section>
+      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for triangle in clipped_triangles:
+    divide_by_w_and_map_to_screen()
+    for pixel in triangle.bounding_box:
+        barycentric = compute_barycentric(pixel, triangle)
+        if barycentric.inside():
+            depth = interpolate_perspective_correct(barycentric)
+            if depth &lt; framebuffer.depth[pixel]:
+                write_color_depth_and_object_id()</code></pre></div></section>
+      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/clipping.py"><span>renderer/clipping.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/viewport.py"><span>app/viewport.py</span>↗</a></div></section>
+      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
+<svg viewBox="0 0 720 250" role="img" aria-label="三角形光栅化与深度缓冲">
+  <rect x="40" y="25" width="280" height="190" class="svg-grid"/><polygon points="80,190 210,45 295,190" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+  <g fill="var(--accent)"><circle cx="120" cy="150" r="4"/><circle cx="160" cy="110" r="4"/><circle cx="200" cy="70" r="4"/><circle cx="240" cy="120" r="4"/></g>
+  <g class="svg-node"><rect x="385" y="40" width="270" height="48" rx="8"/><text x="520" y="70">颜色 RGBA · uint8</text>
+    <rect x="385" y="102" width="270" height="48" rx="8"/><text x="520" y="132">深度 · float32</text>
+    <rect x="385" y="164" width="270" height="48" rx="8"/><text x="520" y="194">物体 ID · int32</text></g>
+</svg>
+</div></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>显示链路</dt><dd>FrameBuffer → QImage → QPainter</dd></div><div class="metric"><dt>显示模式</dt><dd>实体 / 线框 / 粒子</dd></div><div class="metric"><dt>数值保护</dt><dd>裁剪后再做透视除法</dd></div></dl></section>
+      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>三角形有裂缝：检查共享边像素规则与浮点误差。</li><li>线框出现 NaN：确认使用 clip_line 而不是对两个顶点调用多边形裁剪。</li><li>Qt 画面闪烁或变黑：确认 QImage 引用的 NumPy 数据在 paintEvent 期间仍有效。</li></ol></div></section>
+      <nav class="page-nav" aria-label="章节导航"><a href="chapter03.html"><small>← 上一章</small>最小闭环：相机、投影和 FrameBuffer</a><a href="chapter05.html"><small>下一章 →</small>物理模拟基础：粒子、时间步和积分</a></nav>
+    </article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

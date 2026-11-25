@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="刚体保持形状，软体用距离和四面体体积约束抵抗变形。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>刚体与软体 Demo · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="../chapters/chapter10.html" aria-current="page"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <article class="content">
+      <header>
+        <p class="eyebrow">Chapter 10 / 12</p>
+        <h1>刚体与软体 Demo</h1>
+        <p class="lede">刚体保持形状，软体用距离和四面体体积约束抵抗变形。</p>
+        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
+      </header>
+
+      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
+<p>刚体 Demo 使用一个有半径的动态球体。它没有旋转自由度，重点观察重力、地面与静态球碰撞、恢复系数、摩擦，以及球体对布料粒子的双向冲量。</p>
+<p>软体 Demo 使用 3×3×3 粒子格点，其中包含内部中心粒子。距离约束维持形状，六个四面体体积约束共同维持立方体体积。体积梯度来自四面体有符号体积对各顶点位置的偏导。</p>
+<div class="callout"><strong>边界：</strong>这是教学级实现，不包含完整接触流形、连续碰撞检测、真实刚体旋转或通用有限元。</div>
+</div></section>
+      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
+<div class="formula">刚体法向冲量：j = −(1 + e) v<sub>n</sub> / (w<sub>body</sub> + w<sub>particle</sub>)<br>V<sub>tet</sub> = ((b − a) × (c − a)) · (d − a) / 6<br>XPBD 体积：Δλ = (−C − α̃λ) / (Σw<sub>i</sub>|∇C<sub>i</sub>|² + α̃)</div>
+<p>体积约束使用解析梯度，不需要 autograd。梯度方向决定每个顶点应该移动多少。</p>
+</div></section>
+      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code># 刚体
+velocity += gravity * h
+position += velocity * h
+project_out_of_ground_and_static_sphere()
+apply_restitution_and_coulomb_friction()
+
+# 软体
+for iteration:
+    project_distance_constraints_with_xpbd()
+    for tetrahedron:
+        compute_volume_and_analytic_gradients()
+        update_lambda_and_particle_positions()</code></pre></div></section>
+      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/rigidbody/sphere.py"><span>physics/rigidbody/sphere.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/geometry.py"><span>physics/softbody/geometry.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/xpbd.py"><span>physics/softbody/xpbd.py</span>↗</a></div></section>
+      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
+<svg viewBox="0 0 720 280" role="img" aria-label="刚体球与软体体积约束">
+  <circle cx="140" cy="95" r="58" fill="var(--warm-soft)" stroke="var(--warm)" stroke-width="3"/><path d="M35 210 H245" stroke="var(--muted)" stroke-width="3"/><path d="M140 153 V199" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow1)"/><text x="92" y="250">刚体：形状不变</text>
+  <g fill="var(--accent)"><circle cx="430" cy="50" r="5"/><circle cx="530" cy="50" r="5"/><circle cx="430" cy="150" r="5"/><circle cx="530" cy="150" r="5"/><circle cx="480" cy="100" r="5"/></g>
+  <g stroke="var(--accent)" stroke-width="2"><path d="M430 50 L530 50 L530 150 L430 150 Z M430 50 L480 100 L530 150 M530 50 L480 100 L430 150"/></g>
+  <text x="405" y="250">软体：体积恢复</text>
+</svg>
+</div></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>软体格点</dt><dd>27 粒子，含 1 个内部粒子</dd></div><div class="metric"><dt>体积单元</dt><dd>6 个四面体</dd></div><div class="metric"><dt>刚体摩擦</dt><dd>库仑上限截断</dd></div></dl></section>
+      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>球体穿过地面：碰撞判断要使用球心到平面的距离减去 radius。</li><li>软体体积恢复但整体偏斜：顺序投影会破坏对称，增加迭代或检查拓扑。</li><li>冲量交换不守恒：确认粒子与球体使用相同法线方向，并按总逆质量分配。</li></ol></div></section>
+      <nav class="page-nav" aria-label="章节导航"><a href="chapter09.html"><small>← 上一章</small>三种布料算法的比较</a><a href="chapter11.html"><small>下一章 →</small>性能、稳定性与局限性</a></nav>
+    </article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

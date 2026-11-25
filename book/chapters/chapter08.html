@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在 PBD 投影中加入 compliance，让“软硬”具备时间步一致的物理含义。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>XPBD：柔度与拉格朗日乘子 · RenderTorch 教学书</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/book.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
+    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
+    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
+      <p class="sidebar-title">全书目录</p>
+      <ol class="toc">
+        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
+        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
+<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
+<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
+<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
+<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
+<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
+<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
+<li><a href="../chapters/chapter08.html" aria-current="page"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
+<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
+<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
+<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
+<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
+      </ol>
+      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
+    </aside>
+    <main id="main-content">
+    <article class="content">
+      <header>
+        <p class="eyebrow">Chapter 08 / 12</p>
+        <h1>XPBD：柔度与拉格朗日乘子</h1>
+        <p class="lede">在 PBD 投影中加入 compliance，让“软硬”具备时间步一致的物理含义。</p>
+        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>2</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
+      </header>
+
+      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
+<p>XPBD 为每条约束维护一个拉格朗日乘子 <code>λ</code>。它不仅看当前误差，也看这个子步中已经施加过多少修正，因此能表达有限的材料柔度。</p>
+<p>compliance 越小，约束越硬。为了在不同子步下保持意义，代码使用 <code>α̃ = α / h²</code>。乘子在一个子步的所有迭代中保留，进入下一个子步时清零。</p>
+<div class="callout"><strong>与 PBD 的关系：</strong>compliance 为 0 时，XPBD 的距离约束投影退化为 PBD 的硬约束形式。</div>
+</div></section>
+      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
+<div class="formula">α̃ = α / h²<br>Δλ = (−C − α̃λ) / (w<sub>a</sub> + w<sub>b</sub> + α̃)<br>Δx<sub>a</sub> = −w<sub>a</sub> Δλ n<br>Δx<sub>b</sub> = w<sub>b</sub> Δλ n</div>
+<p>这里的 h 是子步长，而不是一次渲染帧的时间。</p>
+</div></section>
+      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>effective_compliance = compliance / (step * step)
+lambdas.zero_()
+for iteration in range(iterations):
+    for constraint in constraints:
+        error = distance - rest_length
+        delta_lambda = (-error - alpha * lambdas[i]) / (weight + alpha)
+        lambdas[i] += delta_lambda
+        position[a] -= inverse_mass[a] * delta_lambda * normal
+        position[b] += inverse_mass[b] * delta_lambda * normal</code></pre></div></section>
+      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/xpbd.py"><span>physics/cloth/xpbd.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/geometry.py"><span>physics/cloth/geometry.py</span>↗</a></div></section>
+      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
+<svg viewBox="0 0 720 260" role="img" aria-label="XPBD 乘子在迭代中累积">
+  <g class="svg-node"><rect x="35" y="95" width="145" height="65" rx="10"/><text x="107" y="133">当前误差 C</text>
+    <rect x="245" y="95" width="145" height="65" rx="10"/><text x="317" y="133">上轮乘子 λ</text>
+    <rect x="455" y="95" width="145" height="65" rx="10"/><text x="527" y="133">柔度 α̃</text></g>
+  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)"><path d="M180 127 H245"/><path d="M390 127 H455"/></g>
+  <path d="M527 160 V215 H107 V160" fill="none" stroke="var(--warm)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow1)"/>
+  <text x="210" y="242">同一子步内迭代循环；下一子步 λ 清零</text>
+</svg>
+</div></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>默认结构柔度</dt><dd>1e−6</dd></div><div class="metric"><dt>剪切 / 弯曲</dt><dd>5e−6 / 1e−5</dd></div><div class="metric"><dt>默认迭代</dt><dd>8</dd></div></dl></section>
+      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>改子步后软硬变化：检查是否使用 α / h²。</li><li>约束越来越硬或振荡：确认 λ 没有在每次迭代前被清零。</li><li>仍无法收敛：减小 compliance 或增加迭代，先分别观察。</li></ol></div></section>
+      <nav class="page-nav" aria-label="章节导航"><a href="chapter07.html"><small>← 上一章</small>PBD：位置约束与迭代求解</a><a href="chapter09.html"><small>下一章 →</small>三种布料算法的比较</a></nav>
+    </article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>
