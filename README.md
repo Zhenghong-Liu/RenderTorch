@@ -2,7 +2,7 @@
 
 基于 Python、PyTorch 与 PySide6 的自定义 3D 软件渲染器和教学级物理实验平台。
 
-当前进度：**M1–M6 已完成**。程序使用 `FrameBuffer → QImage → QPainter` 显示场景，可在同一 Qt 窗口切换刚体、三种布料算法和 XPBD 软体。M7 中文静态教学书已生成，GitHub Pages 发布状态见路线图。
+当前进度：**M1–M7 已完成**。程序使用 `FrameBuffer → QImage → QPainter` 显示场景，可在同一 Qt 窗口切换刚体、三种布料算法和 XPBD 软体。M7 中文静态教学书已发布到 [GitHub Pages](https://zhenghong-liu.github.io/RenderTorch/)。
 
 ## 运行
 
@@ -37,7 +37,7 @@ python book/build.py
 python -m http.server 8000 --directory book
 ```
 
-打开 `http://localhost:8000`。书籍包含 12 个独立章节、真实源码链接和三种布料算法的浏览器交互对比；不使用重型前端框架。构建产物位于 `book/`，部署时直接发布该目录。
+打开 `http://localhost:8000`。书籍包含 12 个独立章节、真实源码链接和三种布料算法的浏览器交互对比；不使用重型前端框架。构建产物位于 `book/`，通过 `git subtree split --prefix book -b gh-pages` 发布到独立 `gh-pages` 分支根目录。
 
 - 路线图与验收：[docs/development-roadmap.md](docs/development-roadmap.md)
 - 参考资料与许可边界：[docs/references.md](docs/references.md)
