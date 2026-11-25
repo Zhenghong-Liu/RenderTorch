@@ -72,7 +72,7 @@ FrameBuffer --复制--&gt; QImage --绘制--&gt; QPainter</code></pre></div></se
   <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)"><path d="M180 47 H235"/><path d="M385 47 H440"/><path d="M515 74 V125"/><path d="M310 74 V125"/><path d="M105 74 V200 H235"/><path d="M515 179 V200 H385"/><path d="M310 179 V230"/></g>
 </svg>
 </div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>UI 依赖</dt><dd>仅 app 层导入 PySide6</dd></div><div class="metric"><dt>模拟步长</dt><dd>1/120 s，2 个子步</dd></div><div class="metric"><dt>场景同步</dt><dd>每步复制粒子位置到网格</dd></div></dl></section>
+      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>UI 依赖</dt><dd>PySide6 仅由 app 与入口脚本导入</dd></div><div class="metric"><dt>模拟步长</dt><dd>1/120 s，2 个子步</dd></div><div class="metric"><dt>场景同步</dt><dd>每步复制粒子位置到网格</dd></div></dl></section>
       <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>如果核心测试必须创建 QApplication，说明依赖方向反了。</li><li>如果切换算法后场景重置但相机不重置，检查 Controller 的构建边界。</li><li>如果球体位置更新而网格没动，检查 _sync_meshes 是否访问了正确的 body_simulation。</li></ol></div></section>
       <nav class="page-nav" aria-label="章节导航"><a href="chapter01.html"><small>← 上一章</small>为什么从零搭建 3D 与物理教学项目</a><a href="chapter03.html"><small>下一章 →</small>最小闭环：相机、投影和 FrameBuffer</a></nav>
     </article>

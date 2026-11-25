@@ -52,8 +52,8 @@
 <div class="callout"><strong>线框的特殊处理：</strong>一条线段穿过近裁剪面时可能变成两个端点。参数化裁剪保证返回的仍是有限线段，而不是重复顶点。</div>
 </div></section>
       <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">λ<sub>1</sub> + λ<sub>2</sub> + λ<sub>3</sub> = 1，λ<sub>i</sub> ≥ 0<br>z<sub>pixel</sub> = λ<sub>1</sub>z<sub>1</sub> + λ<sub>2</sub>z<sub>2</sub> + λ<sub>3</sub>z<sub>3</sub><br>写入条件：z<sub>pixel</sub> &lt; depth[x, y]</div>
-<p>深度测试不是“最后画的盖住先画的”，因此对象添加顺序不应改变遮挡结果。</p>
+<div class="formula">λ<sub>1</sub> + λ<sub>2</sub> + λ<sub>3</sub> = 1，λ<sub>i</sub> ≥ 0<br>z<sub>pixel</sub> = 1 / (λ<sub>1</sub>/z<sub>1</sub> + λ<sub>2</sub>/z<sub>2</sub> + λ<sub>3</sub>/z<sub>3</sub>)<br>写入条件：z<sub>pixel</sub> &lt; depth[x, y]</div>
+<p>屏幕空间重心坐标用于覆盖测试，深度必须在裁剪空间按逆深度插值后再取倒数，不能直接线性插值屏幕空间的 z。深度测试不是“最后画的盖住先画的”，因此对象添加顺序不应改变遮挡结果。</p>
 </div></section>
       <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for triangle in clipped_triangles:
     divide_by_w_and_map_to_screen()

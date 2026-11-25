@@ -87,7 +87,7 @@ FrameBuffer --复制--> QImage --绘制--> QPainter
 </svg>
 """,
         "metrics": [
-            ("UI 依赖", "仅 app 层导入 PySide6"),
+            ("UI 依赖", "PySide6 仅由 app 与入口脚本导入"),
             ("模拟步长", "1/120 s，2 个子步"),
             ("场景同步", "每步复制粒子位置到网格"),
         ],
@@ -151,8 +151,8 @@ pixel = viewport(ndc, width, height)
 <div class="callout"><strong>线框的特殊处理：</strong>一条线段穿过近裁剪面时可能变成两个端点。参数化裁剪保证返回的仍是有限线段，而不是重复顶点。</div>
 """,
         "formula": """
-<div class="formula">λ<sub>1</sub> + λ<sub>2</sub> + λ<sub>3</sub> = 1，λ<sub>i</sub> ≥ 0<br>z<sub>pixel</sub> = λ<sub>1</sub>z<sub>1</sub> + λ<sub>2</sub>z<sub>2</sub> + λ<sub>3</sub>z<sub>3</sub><br>写入条件：z<sub>pixel</sub> &lt; depth[x, y]</div>
-<p>深度测试不是“最后画的盖住先画的”，因此对象添加顺序不应改变遮挡结果。</p>
+<div class="formula">λ<sub>1</sub> + λ<sub>2</sub> + λ<sub>3</sub> = 1，λ<sub>i</sub> ≥ 0<br>z<sub>pixel</sub> = 1 / (λ<sub>1</sub>/z<sub>1</sub> + λ<sub>2</sub>/z<sub>2</sub> + λ<sub>3</sub>/z<sub>3</sub>)<br>写入条件：z<sub>pixel</sub> &lt; depth[x, y]</div>
+<p>屏幕空间重心坐标用于覆盖测试，深度必须在裁剪空间按逆深度插值后再取倒数，不能直接线性插值屏幕空间的 z。深度测试不是“最后画的盖住先画的”，因此对象添加顺序不应改变遮挡结果。</p>
 """,
         "pseudocode": """
 for triangle in clipped_triangles:
