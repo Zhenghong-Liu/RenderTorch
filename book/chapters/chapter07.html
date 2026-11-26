@@ -3,82 +3,109 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="不直接求弹簧力，而是反复把粒子投影回距离约束允许的位置。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>PBD：位置约束与迭代求解 · RenderTorch 教学书</title>
+  <title>参数曲线：Bézier、B-spline 与 NURBS 概念</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter07.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html" aria-current="page"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html" aria-current="page"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 07 / 12</p>
-        <h1>PBD：位置约束与迭代求解</h1>
-        <p class="lede">不直接求弹簧力，而是反复把粒子投影回距离约束允许的位置。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 07 / 15 · 二、几何建模</p><h1>参数曲线：Bézier、B-spline 与 NURBS 概念</h1><p class="lede">从参数区间和控制点出发，推导 Bézier 曲线并理解样条与权重的作用。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>用 de Casteljau 算法计算曲线点</li><li>解释控制点、基函数和参数连续性的意义</li></ol><p><strong>先验知识：</strong>基础多项式、第 2 章的向量加法与数乘。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">控制点不都在曲线上</div><div class="prose"><h2>用加权平均画出一条平滑曲线</h2><p>折线只由线段组成，而设计曲线需要一种可预测、可局部修改的平滑形状。
+                Bézier 曲线把控制点当作“引力”：参数 \(t\) 从 0 走到 1，
+                曲线在每个时刻取控制点附近的一个加权平均。除端点外，控制点通常并不落在曲线上。</p>
+                <p>控制点数量决定次数：两个控制点得到直线，三个得到二次曲线，四个得到三次曲线。
+                本章先掌握三次 Bézier 和 de Casteljau 算法，再把同一思想推广到 B-spline 与 NURBS。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 290" role="img" aria-label="四个控制点与三次贝塞尔曲线">
+                <defs><marker id="curve-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6Z" fill="#087f83"/></marker></defs>
+                <path d="M70 220L210 70L400 80L570 210" fill="none" stroke="#9aa8a2" stroke-width="2" stroke-dasharray="7 6"/>
+                <path d="M70 220C180 20 330 190 570 210" fill="none" stroke="#087f83" stroke-width="4" marker-end="url(#curve-arrow)"/>
+                <g fill="#c66b35"><circle cx="70" cy="220" r="8"/><circle cx="210" cy="70" r="8"/><circle cx="400" cy="80" r="8"/><circle cx="570" cy="210" r="8"/></g>
+                <g fill="#17252d" font-size="15"><text x="48" y="245">P0</text><text x="190" y="55">P1</text><text x="405" y="65">P2</text><text x="560" y="190">P3</text></g>
+                <circle cx="320" cy="126" r="6" fill="#132832"/><text x="330" y="120">t = 0.5</text>
+                </svg><p><strong>图 7.1</strong>　虚线连接控制点形成控制多边形；绿色曲线是实际 Bézier 曲线。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>次数、Bernstein 基与参数区间</h2><p>设 \(n+1\) 个控制点为 \(\mathbf P_0,\ldots,\mathbf P_n\)。
+                次数为 \(n\) 的 Bézier 曲线定义为：</p>
+                <div class="formula">\[\mathbf B(t)=\sum_{i=0}^{n}B_i^n(t)\mathbf P_i,\qquad 0\le t\le1,\]</div>
+                <p>其中 Bernstein 基函数为：</p>
+                <div class="formula">\[B_i^n(t)=\binom{n}{i}t^i(1-t)^{n-i}.\]</div>
+                <p>基函数非负且总和为 1，所以曲线位于控制点的凸包内。
+                当 \(t=0\) 时只有 \(B_0^n=1\)，当 \(t=1\) 时只有 \(B_n^n=1\)，
+                因此曲线精确经过首尾控制点，但不保证经过中间控制点。</p>
+                <p>三次 Bézier 常写成工程中熟悉的形式：</p>
+                <div class="formula">\[\begin{aligned}
+                \mathbf B(t)={}&(1-t)^3\mathbf P_0+3t(1-t)^2\mathbf P_1\\
+                &+3t^2(1-t)\mathbf P_2+t^3\mathbf P_3.
+                \end{aligned}\]</div></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>de Casteljau：反复取相邻中点</h2><p>直接展开 Bernstein 多项式可以计算曲线，但 de Casteljau 更容易手算，也更容易画出中间过程。
+                第一步在每对相邻控制点之间按比例 \(t\) 插值：</p>
+                <div class="formula">\[\mathbf Q_i=(1-t)\mathbf P_i+t\mathbf P_{i+1}.\]</div>
+                <p>对 \(\mathbf Q_i\) 重复同一操作，点数每轮减少 1；最后只剩一个点，就是 \(\mathbf B(t)\)。
+                对四个控制点，完整过程是：</p>
+                <div class="formula">\[\begin{aligned}
+                \mathbf Q_0&=(1-t)\mathbf P_0+t\mathbf P_1,&
+                \mathbf Q_1&=(1-t)\mathbf P_1+t\mathbf P_2,\\
+                \mathbf Q_2&=(1-t)\mathbf P_2+t\mathbf P_3,&
+                \mathbf R_0&=(1-t)\mathbf Q_0+t\mathbf Q_1,\\
+                \mathbf R_1&=(1-t)\mathbf Q_1+t\mathbf Q_2,&
+                \mathbf B(t)&=(1-t)\mathbf R_0+t\mathbf R_1.
+                \end{aligned}\]</div>
+                <p>导数可以由控制多边形得到。一般地：</p>
+                <div class="formula">\[\frac{d\mathbf B}{dt}
+                =n\sum_{i=0}^{n-1}B_i^{n-1}(t)(\mathbf P_{i+1}-\mathbf P_i).\]</div>
+                <p>因此切线方向来自控制点差分的加权和，线速度则包含参数区间的缩放。
+                若用曲线弧长重新参数化，才能得到近似匀速运动。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>四个控制点在 t = 0.5 的全部中间级</h2><p>取二维控制点：</p>
+                <div class="formula">\[\mathbf P_0=(0,0),\quad \mathbf P_1=(1,2),\quad
+                \mathbf P_2=(3,2),\quad \mathbf P_3=(4,0).\]</div>
+                <p>当 \(t=0.5\) 时，每一级都取相邻点的中点：</p>
+                <div class="formula">\[\begin{aligned}
+                \mathbf Q_0&=(0.5,1),&\mathbf Q_1&=(2,2),&\mathbf Q_2&=(3.5,1),\\
+                \mathbf R_0&=(1.25,1.5),&\mathbf R_1&=(2.75,1.5),\\
+                \mathbf B(0.5)&=(2,1.5).
+                \end{aligned}\]</div>
+                <p>导数使用二次 Bernstein 权重 \(0.25,0.5,0.25\)：</p>
+                <div class="formula">\[\mathbf B'(0.5)=3\left[0.25(1,2)+0.5(2,0)+0.25(1,-2)\right]=(4.5,0).\]</div>
+                <p>所以中点处的切线水平向右。实验会显示这 7 个点以及导数向量，便于逐项核对。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>显式三级插值</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 三次 de Casteljau</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>function bezierPoint(points, t) {
+  const q = points.slice(0, -1).map((p, i) =&gt;
+    lerpPoint(p, points[i + 1], t));
+  const r = [lerpPoint(q[0], q[1], t), lerpPoint(q[1], q[2], t)];
+  return { point: lerpPoint(r[0], r[1], t), levels: [points, q, r] };
+}
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>PBD 把“粒子应该在哪里”当作主要问题。每条距离约束产生一个沿连线方向的修正，按逆质量分配给两个粒子，然后进入下一条约束。</p>
-<p>求解采用顺序 Gauss–Seidel：修正立即生效，后面的约束看到更新后的位置。与之相对，同时计算所有修正再一次性累加，会在共享粒子多的高刚度网格中过度修正。</p>
-<div class="callout"><strong>为什么稳定：</strong>位置投影不会像过硬的显式弹簧那样放大速度。但 PBD 的 stiffness 更像每轮投影比例，不是材料模量。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">C = |x<sub>b</sub> − x<sub>a</sub>| − L<sub>0</sub><br>Δx<sub>a</sub> = w<sub>a</sub> (C / (w<sub>a</sub> + w<sub>b</sub>)) n<br>Δx<sub>b</sub> = −w<sub>b</sub> (C / (w<sub>a</sub> + w<sub>b</sub>)) n</div>
-<p>当前实现把修正乘以 stiffness。固定粒子权重为 0，因此不会被投影移动。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for iteration in range(iterations):
-    for constraint in constraints:
-        weight = inverse_mass[a] + inverse_mass[b]
-        if weight == 0: continue
-        delta = position[b] - position[a]
-        correction = normalize(delta) * (length(delta) - rest_length)
-        position[a] += stiffness * correction * inverse_mass[a] / weight
-        position[b] -= stiffness * correction * inverse_mass[b] / weight
-reconstruct_velocities_from_position_change(h)</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/pbd.py"><span>physics/cloth/pbd.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/geometry.py"><span>physics/cloth/geometry.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 250" role="img" aria-label="PBD 顺序位置投影">
-  <g stroke="var(--muted)" stroke-width="3"><path d="M90 75 H280"/><path d="M90 175 H280"/></g>
-  <g stroke="var(--accent)" stroke-width="3"><path d="M90 75 H315"/><path d="M90 175 H245"/></g>
-  <g fill="var(--accent)"><circle cx="90" cy="75" r="7"/><circle cx="280" cy="75" r="7"/><circle cx="315" cy="75" r="7"/><circle cx="90" cy="175" r="7"/><circle cx="280" cy="175" r="7"/><circle cx="245" cy="175" r="7"/></g>
-  <text x="70" y="35">被拉伸</text><text x="335" y="115">第一条约束先修正</text><text x="335" y="150">后续约束立即读取新位置</text><text x="335" y="185">重复 iterations 轮</text>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>默认结构刚度</dt><dd>0.95</dd></div><div class="metric"><dt>默认迭代</dt><dd>8</dd></div><div class="metric"><dt>共享拓扑</dt><dd>8 × 6 网格，固定顶行</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>迭代增加但误差不降：检查约束是否按顺序求解，以及固定粒子权重。</li><li>网格爆炸：不要同时累加所有约束修正，改为逐条更新。</li><li>运动没有惯性：确认求解后根据位置变化重建速度。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter06.html"><small>← 上一章</small>质点弹簧布料模型</a><a href="chapter08.html"><small>下一章 →</small>XPBD：柔度与拉格朗日乘子</a></nav>
-    </article>
+function lerpPoint(a, b, t) {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}</code></pre></div>
+                <p>三次公式只是固定次数的特例。实际建模库通常实现任意次数，或直接提供 B-spline 求值器，
+                以便用更多控制点表达局部细节，而不必把次数提高到数值不稳定的程度。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>参数曲线不是按弧长等速前进</h2><details><summary>问题 1：二次 Bézier 在 t=0.5 时一定经过中间控制点吗？</summary>
+                <p><strong>答案：</strong>不一定。它等于
+                \(0.25\mathbf P_0+0.5\mathbf P_1+0.25\mathbf P_2\)，中间点权重只有 0.5。</p></details>
+                <details><summary>问题 2：为什么曲线总在控制点凸包内？</summary>
+                <p><strong>答案：</strong>Bernstein 基函数非负且总和为 1，曲线是控制点的凸组合。</p></details>
+                <details><summary>问题 3：把参数 t 从 0 到 1 线性推进，为什么看起来可能时快时慢？</summary>
+                <p><strong>答案：</strong>\(|\mathbf B'(t)|\) 随控制点布局改变，参数速度不等于弧长速度。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>曲线形状与速度问题</h2><ol class="debug-list"><li><strong>端点接不上：</strong>检查曲线是否在 \(t=0\) 和 \(t=1\) 精确经过首尾控制点。</li>
+                <li><strong>形状过冲：</strong>检查是否误用了高次多项式或错误节点向量；Bézier 本身位于凸包内。</li>
+                <li><strong>动画忽快忽慢：</strong>区分参数时间与弧长时间，必要时建立弧长查找表。</li>
+                <li><strong>导数方向错误：</strong>确认差分是 \(\mathbf P_{i+1}-\mathbf P_i\)，而不是反向。</li>
+                <li><strong>拼接处有折角：</strong>检查相邻曲线端点的位置和切线是否按 \(C^0\)、\(C^1\) 或 \(C^2\) 要求匹配。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>曲线概念实验与样条扩展</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验允许拖动四个控制点，
+                实时显示三次 Bézier 曲线、de Casteljau 每一级和导数。二维画布用于展示参数关系。</p>
+                <p><span class="status-pill">后续实现路线</span> RenderTorch 当前没有独立曲线或 NURBS 模块。
+                可以增加 B-spline 求值、节点向量校验和曲线采样为网格的函数；这些属于建模前端，
+                不应侵入光栅化核心。</p>
+                <p><strong>从 Bézier 到 B-spline：</strong>B-spline 用局部支撑的基函数组合控制点：
+                \(\mathbf S(u)=\sum_iN_{i,p}(u)\mathbf P_i\)。NURBS 再引入非负权重：</p>
+                <div class="formula">\[\mathbf R(u)=
+                \frac{\sum_iN_{i,p}(u)w_i\mathbf P_i}{\sum_iN_{i,p}(u)w_i}.\]</div>
+                <p>均匀权重时 NURBS 退化为普通 B-spline；改变权重可以精确表示圆锥曲线等有理形状。
+                本章浏览器实验只实现 Bézier，不声称已实现完整 NURBS。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>概念内容与真实实现</h2><p>本章以浏览器概念实验为主；RenderTorch 当前实现的对应文件会在确实存在时列出。</p></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="curve-demo" data-demo="curve-demo"><h3>可拖动控制点的三次 Bézier 曲线</h3><p>拖动控制点或使用键盘滑块，查看 de Casteljau 中间级、曲线点和导数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter06.html"><small>← 上一章</small>网格拓扑、法线、绕序与三角化</a><a href="chapter08.html"><small>下一章 →</small>参数曲面与细分</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

@@ -3,80 +3,109 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="沿现有边界扩展，而不是重写整个系统。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>后续扩展方向 · RenderTorch 教学书</title>
+  <title>光照模型与材质</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter12.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html" aria-current="page"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html" aria-current="page"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 12 / 12</p>
-        <h1>后续扩展方向</h1>
-        <p class="lede">沿现有边界扩展，而不是重写整个系统。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
-
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>当前版本已经覆盖从相机到三类物理 Demo 的纵向链路。下一步应优先补教学体验和工程基础，而不是立即加入通用 ECS 或大型碰撞引擎。</p>
-<p>推荐的扩展顺序是：书籍交互与指标回放、场景保存加载、基础对象操作、更丰富的碰撞体，最后再考虑自碰撞与性能优化。</p>
-<div class="callout"><strong>可维护性：</strong>每次扩展仍应满足“核心不依赖 UI、测试覆盖数值行为、文档链接真实源码”这三条约束。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">扩展价值 = 学习收益 × 可验证性 ÷ 维护成本</div>
-<p>一个候选功能如果无法定义输入、输出和不变量，就应先写设计，而不是直接改求解器。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>candidates = [指标回放, 项目保存加载, 对象选择与变换, 自碰撞, GPU 求解]
-for feature in candidates:
-    定义独立接口与失败测试
-    保持现有 Demo 可运行
-    更新书籍章节与路线图
-    测量收益与成本后再进入下一项</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/docs/development-roadmap.md"><span>docs/development-roadmap.md</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/physics_panel.py"><span>app/physics_panel.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/main_window.py"><span>app/main_window.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 240" role="img" aria-label="项目扩展路线">
-  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)"><path d="M70 120 H650"/></g>
-  <g class="svg-node"><rect x="25" y="85" width="120" height="70" rx="10"/><text x="85" y="125">教学书</text>
-    <rect x="190" y="85" width="120" height="70" rx="10"/><text x="250" y="125">保存加载</text>
-    <rect x="355" y="85" width="120" height="70" rx="10"/><text x="415" y="125">对象编辑</text>
-    <rect x="520" y="85" width="120" height="70" rx="10"/><text x="580" y="125">高级物理</text></g>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>近期</dt><dd>完善交互与指标展示</dd></div><div class="metric"><dt>中期</dt><dd>io 模块与基础编辑操作</dd></div><div class="metric"><dt>长期</dt><dd>自碰撞、性能与更多材料模型</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>扩展前运行全量测试，建立稳定基线。</li><li>新功能先进入独立模块，避免继续扩大 main_window.py。</li><li>文档与代码同批次更新，防止书籍描述旧架构。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter11.html"><small>← 上一章</small>性能、稳定性与局限性</a><a href="https://github.com/Zhenghong-Liu/RenderTorch"><small>继续探索 →</small>RenderTorch GitHub</a></nav>
-    </article>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 12 / 15 · 四、光照与完整渲染</p><h1>光照模型与材质</h1><p class="lede">由法线、光源和观察方向推导漫反射与高光，并建立 PBR 的直觉。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>分解 Lambert 漫反射与 Blinn–Phong 高光</li><li>说明粗糙度和金属度在材质中的意义</li></ol><p><strong>先验知识：</strong>第 6 章的法线、第 2 章的点积与归一化。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">光如何变成颜色</div><div class="prose"><h2>从几何法线到材质响应</h2><p>几何决定表面朝向，光源决定能量从哪个方向射来，材质决定有多少能量被吸收、散射或反射。
+                渲染器把这些信息压缩成一个着色计算：给定表面点、法线、光源方向和观察方向，输出颜色。</p>
+                <p>本章先学习两个可分解、可验证的模型：Lambert 漫反射与 Blinn–Phong 高光。
+                它们足以解释“迎着光更亮、侧面更暗、光滑表面出现亮斑”，也适合作为理解真实 PBR 的入口。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="环境光、漫反射与高光的贡献分解">
+                <rect x="36" y="45" width="150" height="150" rx="75" fill="#263943"/>
+                <path d="M111 195A75 75 0 0 1 186 120A75 75 0 0 1 111 45A75 75 0 0 0 111 195Z" fill="#314e59"/>
+                <rect x="240" y="45" width="150" height="150" rx="75" fill="#263943"/>
+                <path d="M315 195A75 75 0 0 1 390 120A75 75 0 0 1 315 45A75 75 0 0 0 315 195Z" fill="#8b4b35"/>
+                <rect x="444" y="45" width="150" height="150" rx="75" fill="#263943"/>
+                <path d="M519 195A75 75 0 0 1 594 120A75 75 0 0 1 519 45A75 75 0 0 0 519 195Z" fill="#e5e5e5"/>
+                <circle cx="548" cy="91" r="25" fill="#fff" opacity=".9"/>
+                <path d="M36 120L235 120M407 120L615 120" stroke="#c66b35" stroke-width="2"/>
+                <text x="65" y="230">环境光</text><text x="267" y="230">漫反射</text><text x="470" y="230">高光</text>
+                <text x="228" y="274" fill="#9db6b8">最终颜色 = 各项贡献之和</text>
+                </svg><p><strong>图 12.1</strong>　把总颜色拆成独立贡献，便于验证每一项的方向、强度和颜色。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>方向、材质与半向量</h2><p>在世界空间或统一的着色空间中，定义：</p>
+                <ul><li>\(\mathbf N\)：单位表面法线；</li><li>\(\mathbf L\)：从表面点指向光源的单位方向；</li>
+                <li>\(\mathbf V\)：从表面点指向观察者的单位方向；</li><li>\(\mathbf H=\operatorname{normalize}(\mathbf L+\mathbf V)\)：半向量；</li>
+                <li>\(\mathbf C_{\mathrm{base}}\)：基础颜色，也称 albedo；</li><li>\(k_a,k_d,k_s\)：环境光、漫反射、高光权重；</li>
+                <li>\(s\)：高光指数，越大亮斑越集中。</li></ul>
+                <p>点积 \(\mathbf N\cdot\mathbf L\) 是入射方向与法线夹角的余弦。
+                当它为负，光源位于表面背侧，该光源不应贡献漫反射。
+                所有进入点积的方向都应先归一化，否则结果会随向量长度改变。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>Lambert 与 Blinn–Phong</h2><p><strong>第一步：Lambert 余弦定律。</strong> 单位面积接收到的光通量与入射角余弦成正比，
+                因此漫反射项为：</p>
+                <div class="formula">\[I_{\mathrm{diffuse}}=k_d\,\mathbf C_{\mathrm{base}}\,
+                \max(0,\mathbf N\cdot\mathbf L).\]</div>
+                <p>代码中对应 <code>diffuse = max(0, N · L)</code>。这里的 max 同时完成背面光源剔除，
+                不应改成绝对值，否则背面会被错误照亮。</p>
+                <p><strong>第二步：高光半向量。</strong> 观察方向 \(\mathbf V\) 与光源方向 \(\mathbf L\) 关于法线对称时，
+                镜面反射光最可能进入眼睛。两者的平均方向为：</p>
+                <div class="formula">\[\mathbf H=\operatorname{normalize}(\mathbf L+\mathbf V).\]</div>
+                <p>代码中对应 <code>H = normalize(L + V)</code>。若 \(\mathbf L+\mathbf V\) 接近零，半向量没有稳定方向，应将高光置零。</p>
+                <p><strong>第三步：经验高光。</strong> Blinn–Phong 用法线与半向量的点积控制亮斑：</p>
+                <div class="formula">\[I_{\mathrm{specular}}=k_s\,\mathbf C_{\mathrm{spec}}\,
+                [\max(0,\mathbf N\cdot\mathbf H)]^s.\]</div>
+                <p><strong>第四步：合成。</strong> 在线性颜色空间中：</p>
+                <div class="formula">\[\mathbf C_{\mathrm{linear}}=k_a\mathbf C_{\mathrm{base}}+
+                k_d\mathbf C_{\mathrm{base}}\max(0,\mathbf N\cdot\mathbf L)+
+                k_s\mathbf C_{\mathrm{spec}}[\max(0,\mathbf N\cdot\mathbf H)]^s.\]</div>
+                <p><strong>第五步：走向 PBR。</strong> 真实微表面模型把高光拆成 Fresnel、微表面分布和几何遮挡，
+                并用粗糙度控制分布宽度、用金属度控制基础反射颜色。Blinn–Phong 是经验模型，不等于 PBR；
+                它的优势是简单、稳定、容易逐项调试。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个方向明确的着色样本</h2><p>取 \(\mathbf N=(0,0,1)\)、\(\mathbf V=(0,0,1)\)、
+                \(\mathbf L=(0.6,0,0.8)\)，基础颜色 \((0.6,0.2,0.1)\)，
+                参数 \(k_a=0.1,k_d=0.8,k_s=0.5,s=16\)。</p>
+                <p>漫反射因子为 \(\max(0,0.8)=0.8\)。半向量为
+                \(\mathbf H=\operatorname{normalize}((0.6,0,1.8))\approx(0.316,0,0.949)\)，
+                所以 \(\mathbf N\cdot\mathbf H\approx0.949\)，高光强度约为 \(0.5(0.949)^{16}\approx0.214\)。</p>
+                <div class="formula">\[\begin{aligned}
+                \mathbf C_{\mathrm{ambient}}&=(0.060,0.020,0.010),\\
+                \mathbf C_{\mathrm{diffuse}}&=0.8(0.6,0.2,0.1)(0.8)=(0.384,0.128,0.064),\\
+                \mathbf C_{\mathrm{specular}}&=(0.214,0.214,0.214),\\
+                \mathbf C_{\mathrm{linear}}&\approx(0.658,0.363,0.288).
+                \end{aligned}\]</div>
+                <p>若暂时直接映射到 8 位显示，结果约为 \((168,92,74)\)。
+                第 14 章会说明为什么正式管线应先在线性空间计算，再做 gamma 与色调映射。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与源码映射</div><div class="prose"><h2>逐项计算再相加</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>const diffuse = Math.max(0, dot(N, L));
+const halfSum = add(L, V);
+const H = length(halfSum) &gt; 1e-12 ? scale(halfSum, 1 / length(halfSum)) : null;
+const specular = H ? Math.pow(Math.max(0, dot(N, H)), shininess) : 0;
+const ambient = scale(baseColor, ambientStrength);
+const diffuseColor = scale(baseColor, diffuseStrength * diffuse);
+const specularColor = scale(specularColorBase, specularStrength * specular);
+const linear = clamp(add(add(ambient, diffuseColor), specularColor), 0, 1);</code></pre></div>
+                <p>RenderTorch 的 <code>_shade</code> 只按整个三角形计算一次法线，
+                使用 <code>abs(N·L)</code> 生成明暗，并把结果乘以材质颜色。
+                它没有逐像素法线、观察方向、独立高光项或粗糙度参数。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>方向、贡献与模型边界</h2><details><summary>问题 1：为什么漫反射使用 max(0,N·L)，而不是 abs(N·L)？</summary>
+                <p><strong>答案：</strong>背侧光源不应照亮单面材质；abs 会把背面错误地变亮。</p></details>
+                <details><summary>问题 2：高光指数增大时亮斑如何变化？</summary>
+                <p><strong>答案：</strong>点积小于 1 时，幂次越高数值越小，因此亮斑更窄、更集中。</p></details>
+                <details><summary>问题 3：Blinn–Phong 是 PBR 吗？</summary>
+                <p><strong>答案：</strong>不是。它是经验着色模型；PBR 还需要微表面、Fresnel、能量守恒等更完整的描述。</p></details>
+                <details><summary>问题 4：金属度升高时基础颜色通常怎样变化？</summary>
+                <p><strong>答案：</strong>金属的漫反射很弱，彩色反射主要由基础反射颜色决定；非金属则保留较强漫反射。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>过亮球体与不稳定高光</h2><ol class="debug-list"><li><strong>整个表面发白：</strong>检查各贡献是否在线性空间相加，以及最终是否过晚 clamp。</li>
+                <li><strong>法线长度导致亮度变化：</strong>进入点积前归一化 N、L、V。</li>
+                <li><strong>高光在球面上游走：</strong>确认 L 与 V 都指向表面外，且使用同一个坐标空间。</li>
+                <li><strong>背面发亮：</strong>漫反射误用了 abs，或未统一面绕序。</li>
+                <li><strong>亮斑突然消失：</strong>检查 L+V 是否接近零，以及 shininess 是否过大造成数值下溢。</li></ol>
+                <p>调试时先关闭高光只验证漫反射，再单独验证半向量，最后合成三项。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前逐面着色与后续材质路线</h2><p><span class="status-pill">浏览器概念实验</span> 本章绘制逐像素着色球体，
+                显示样本点的 N、L、V 与环境光、漫反射、高光和最终 RGB。</p>
+                <p><span class="status-pill">现有 RenderTorch</span> <code>renderer/pipeline.py</code>
+                使用固定方向光与逐面叉积法线，强度为 <code>0.5 + 0.5 * abs(N·L)</code>。
+                材质目前主要提供 RGBA 基础颜色。</p>
+                <p><span class="status-pill">后续实现路线</span> 最小升级顺序是：
+                世界空间点积与观察方向 → 顶点法线插值 → 漫反射/高光分解 → 线性颜色输出。
+                完整 PBR 还需要材质系统、粗糙度、金属度、Fresnel 与微表面模型。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：固定方向光与逐面 abs(N·L) 着色</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：材质 RGBA 基础颜色</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：网格几何与共享顶点</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="lighting-demo" data-demo="lighting-demo"><h3>Lambert 漫反射与 Blinn–Phong 高光</h3><p>改变光源方向和材质参数，观察环境光、漫反射、高光与最终颜色的分解。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter11.html"><small>← 上一章</small>重心坐标、属性插值、深度与遮挡</a><a href="chapter13.html"><small>下一章 →</small>纹理、UV 与透视矫正</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>光线追踪与完整渲染管线比较</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
+  <script src="../assets/book.js" defer></script>
+<script src="../assets/demos/chapter15.js" defer></script></head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html" aria-current="page"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
+    <main id="main-content">
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 15 / 15 · 四、光照与完整渲染</p><h1>光线追踪与完整渲染管线比较</h1><p class="lede">从光线与球面求交出发理解光线追踪，并比较它与光栅管线的能力与成本。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>推导 ray-sphere 二次方程并选择有效交点</li><li>比较光栅化、实时光线和路径追踪</li></ol><p><strong>先验知识：</strong>第 4 章的相机射线、第 12 章的光照。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">从像素发出光线</div><div class="prose"><h2>用求交代替三角形覆盖</h2><p>光栅化从物体出发，把三角形投影到屏幕；光线追踪从像素出发，沿视线反向发射光线，
+                询问它首先碰到哪个物体。命中后可以计算法线、光照、反射、折射与阴影。</p>
+                <p>两种方法得到的是同一个成像问题：从相机穿过像素的射线，与场景相互作用后到达相机。
+                    光栅化用硬件友好的三角形流程解决它，光线追踪用通用求交提供更直接的全局效果表达。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="射线与球体平面求交">
+                <path d="M40 230H590" stroke="#9db6b8" stroke-width="3"/>
+                <circle cx="350" cy="157" r="70" fill="#087f83" fill-opacity=".2" stroke="#58c7bd" stroke-width="3"/>
+                <path d="M45 80L350 157" stroke="#ef9a67" stroke-width="3"/>
+                <path d="M350 157L490 73" stroke="#ffd48a" stroke-width="3"/>
+                <circle cx="45" cy="80" r="7" fill="#ef9a67"/><circle cx="350" cy="157" r="6" fill="#fff"/>
+                <path d="M320 136L350 157L320 177" fill="none" stroke="#fff" stroke-width="2"/>
+                <text x="45" y="58">相机 o</text><text x="420" y="55">反射光线</text><text x="215" y="103">p(t)=o+td</text>
+                </svg><p><strong>图 15.1</strong>　一条主射线命中球面，法线决定后续反射或折射方向。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>射线、球心与命中参数</h2><p>射线定义为 \(\mathbf p(t)=\mathbf o+t\mathbf d\)，其中
+                \(\mathbf o\) 是原点，\(\mathbf d\) 是方向，\(t\ge0\) 是沿射线的距离参数。
+                方向归一化时，\(t\) 也可直接解释为世界距离。</p>
+                <p>球由球心 \(\mathbf c\) 与半径 \(r\) 定义。命中的要求是：
+                \(t\) 为实数、\(t\ge0\)，并且在所有候选物体中取最小值。</p>
+                <p>若射线起点位于物体内部，二次方程可能给出一个负根和一个正根。
+                只接受正根；若需要透明物体出口，可把负根转换为沿反方向的出口距离。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>ray-sphere 二次方程与反射</h2><p><strong>第一步：代入射线。</strong> 球面方程为
+                \(\lVert\mathbf p-\mathbf c\rVert^2=r^2\)。代入 <code>p(t) = o + t d</code>：</p>
+                <div class="formula">\[\lVert\mathbf o+t\mathbf d-\mathbf c\rVert^2=r^2.\]</div>
+                <p>令 \(\mathbf m=\mathbf o-\mathbf c\)，展开得到：</p>
+                <div class="formula">\[(\mathbf d\cdot\mathbf d)t^2+
+                2(\mathbf m\cdot\mathbf d)t+(\mathbf m\cdot\mathbf m-r^2)=0.\]</div>
+                <p>即 \(at^2+bt+c=0\)，其中 \(a=\mathbf d\cdot\mathbf d\)、
+                \(b=2\mathbf m\cdot\mathbf d\)、\(c=\mathbf m\cdot\mathbf m-r^2\)。</p>
+                <p><strong>第二步：判别式与根。</strong></p>
+                <div class="formula">\[\Delta=b^2-4ac,\qquad
+                t_{\pm}=\frac{-b\pm\sqrt{\Delta}}{2a}.\]</div>
+                <p>若 \(\Delta&lt;0\)，没有交点；否则检查两个根，保留有效的最小非负 \(t\)。
+                当 \(a\) 接近零时，射线退化，应跳过而不是除以零。</p>
+                <p><strong>第三步：命中点与法线。</strong></p>
+                <div class="formula">\[\mathbf p=\mathbf o+t\mathbf d,\qquad
+                \mathbf n=\operatorname{normalize}(\mathbf p-\mathbf c).\]</div>
+                <p><strong>第四步：镜面反射。</strong> 将方向沿法线分解，反向法线分量：</p>
+                <div class="formula">\[\mathbf r=\mathbf d-2(\mathbf d\cdot\mathbf n)\mathbf n.\]</div>
+                <p>代码中对应 <code>r = d − 2(d · n)n</code>。反射方向应单位化，
+                并以微小偏移从表面发出，避免自交。</p>
+                <p><strong>第五步：概念扩展。</strong> 折射使用 Snell 定律。设入射方向指向表面，
+                法线朝向入射侧，\(\eta=n_1/n_2\)、\(\cos i=-\mathbf N\cdot\mathbf I\)：</p>
+                <div class="formula">\[\mathbf T=\eta\mathbf I+
+                \left(\eta\cos i-\sqrt{1-\eta^2(1-\cos^2i)}\right)\mathbf N.\]</div>
+                <p>根号内为负时发生全内反射。Fresnel 可用 Schlick 近似
+                \(F=F_0+(1-F_0)(1-\cos\theta)^5\)。
+                路径追踪进一步用渲染方程递归积分多条随机路径；本章浏览器实验不实现完整 PBR 或路径追踪。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个球的两个交点</h2><p>取 \(\mathbf o=(0,0,-5)\)、\(\mathbf d=(0,0,1)\)，
+                球心 \(\mathbf c=(0,0,0)\)、半径 \(r=2\)。</p>
+                <div class="formula">\[a=1,\qquad b=2(-5)=-10,\qquad c=25-4=21,\qquad
+                \Delta=100-84=16.\]</div>
+                <div class="formula">\[t_{\pm}=\frac{10\pm4}{2}=3,\ 7.\]</div>
+                <p>最近交点为 \(t=3\)，位置 \(\mathbf p=(0,0,-2)\)，法线 \(\mathbf n=(0,0,-1)\)。
+                因为 \(\mathbf d\cdot\mathbf n=-1\)，反射方向为：</p>
+                <div class="formula">\[\mathbf r=(0,0,1)-2(-1)(0,0,-1)=(0,0,-1).\]</div>
+                <p>增大最大反射次数后， secondary ray 会继续寻找其他球或平面，形成可见的反射贡献。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>最近命中和受限反射</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>const oc = subtract(origin, center);
+const a = dot(direction, direction);
+const b = 2 * dot(oc, direction);
+const c = dot(oc, oc) - radius * radius;
+const discriminant = b * b - 4 * a * c;
+let nearest = Infinity;
+if (a &gt; 1e-12 &amp;&amp; discriminant &gt;= 0) {
+  for (const sign of [-1, 1]) {
+    const t = (-b + sign * Math.sqrt(discriminant)) / (2 * a);
+    if (t &gt;= 0 &amp;&amp; t &lt; nearest) nearest = t;
+  }
+}
+if (nearest !== Infinity) {
+  const p = add(origin, scale(direction, nearest));
+  const n = normalize(subtract(p, center));
+  const r = subtract(direction, scale(n, 2 * dot(direction, n)));
+}</code></pre></div>
+                <p>RenderTorch 当前没有光线追踪器。本章实验是独立浏览器概念实现，
+                通过球与平面的求交展示射线模型，不替代现有光栅管线。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>求交、反射与算法边界</h2><details><summary>问题 1：为什么两个根中要取最小非负值？</summary>
+                <p><strong>答案：</strong>射线首先遇到的是沿方向最近的表面；负根位于射线反方向。</p></details>
+                <details><summary>问题 2：判别式为负表示什么？</summary>
+                <p><strong>答案：</strong>射线不与球面相交。</p></details>
+                <details><summary>问题 3：反射公式中为什么要减 2(d·n)n？</summary>
+                <p><strong>答案：</strong>它把方向沿法线的分量反向，同时保留切向分量。</p></details>
+                <details><summary>问题 4：最大反射次数为 0 时会看到什么？</summary>
+                <p><strong>答案：</strong>只计算主射线命中的直接颜色，不继续追踪 secondary ray。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>漏交、自交与反射噪声</h2><ol class="debug-list"><li><strong>球体出现空洞：</strong>检查方向是否归一化、判别式符号与根的有效性。</li>
+                <li><strong>表面出现黑点：</strong> secondary ray 起点与表面重合导致自交，应沿新方向做微小偏移。</li>
+                <li><strong>法线方向错误：</strong>球面法线由命中点减球心得到；若起点在内部，需按入射侧决定朝向。</li>
+                <li><strong>反射越来越暗：</strong>每次反弹可按材质能量衰减，但不能在线性颜色中提前 clamp。</li>
+                <li><strong>多样本边缘闪烁：</strong>使用固定、可复现的样本偏移，并避免无约束随机数造成测试不可重复。</li></ol>
+                <p>先用 1 条光线、0 次反射验证球体与平面，再增加多样本，最后开启 secondary ray。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>光栅与光线追踪的定位</h2><p><span class="status-pill">浏览器概念实验</span> 本章实现 CPU ray-sphere、平面求交、镜面反射，
+                最大反射次数 0–3，每像素 1–4 条光线，只在用户操作后重绘。</p>
+                <p><span class="status-pill">现有 RenderTorch</span> <code>renderer/pipeline.py</code>
+                走裁剪、透视除法、三角形光栅和 z-buffer；没有 BVH、光线求交、反射、折射或路径追踪。</p>
+                <p><span class="status-pill">后续实现路线</span> 先添加射线与球/三角形求交，
+                再增加简单 BVH 和阴影射线；材质完整后再加入 Fresnel、折射、HDR 与随机路径积分。</p>
+                <table><thead><tr><th>维度</th><th>光栅化</th><th>光线追踪</th></tr></thead><tbody>
+                <tr><td>主要循环</td><td>物体 → 三角形 → 像素</td><td>像素 → 射线 → 物体</td></tr>
+                <tr><td>可见性</td><td>z-buffer</td><td>最近射线交点</td></tr>
+                <tr><td>优势</td><td>硬件成熟、实时友好</td><td>反射、折射与全局效果表达直接</td></tr>
+                <tr><td>主要成本</td><td>三角形吞吐与属性带宽</td><td>求交次数、内存访问与样本数</td></tr>
+                </tbody></table></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>对比实现：三角形光栅与 z-buffer，不是光线追踪</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>对比实现：边函数覆盖与逐像素可见性</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span><small>可复用概念：最终像素颜色与深度输出</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="raytrace-demo" data-demo="raytrace-demo"><h3>球体求交与受限镜面反射</h3><p>从像素发射射线，求球和平面的最近交点，并逐级增加反射次数与每像素光线数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter14.html"><small>← 上一章</small>阴影、gamma 与色调映射</a><span></span></nav></article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

@@ -1,199 +1,300 @@
 import argparse
 import html
-import shutil
+import importlib.util
 from pathlib import Path
-
-from content import BRANCH, CHAPTERS, REPOSITORY, source_url
-
-
-SOURCE_DIR = Path(__file__).resolve().parent
-ROOT = SOURCE_DIR.parent
+import shutil
+import sys
 
 
-def navigation(current, prefix):
-    items = []
-    for chapter in CHAPTERS:
-        active = ' aria-current="page"' if chapter["number"] == current else ""
+ROOT = Path(__file__).resolve().parent
+CONTENT_PATH = ROOT / "content.py"
+CONTENT_NAME = "rendertorch_book_v2_content"
+SPEC = importlib.util.spec_from_file_location(CONTENT_NAME, CONTENT_PATH)
+CONTENT = importlib.util.module_from_spec(SPEC)
+sys.modules[CONTENT_NAME] = CONTENT
+SPEC.loader.exec_module(CONTENT)
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def copy_assets(output_dir: Path) -> None:
+    source = ROOT / "assets"
+    target = output_dir / "assets"
+    if source.resolve() == target.resolve():
+        return
+    shutil.copytree(source, target, dirs_exist_ok=True)
+
+
+def escape(value: str) -> str:
+    return html.escape(value, quote=True)
+
+
+def navigation(active_slug: str = "", prefix: str = "") -> str:
+    rows = CONTENT.chapters()
+    chapter_prefix = "" if prefix else "chapters/"
+    home_current = ' aria-current="page"' if active_slug == "index" else ""
+    items = [
+        f'<li><a href="{prefix}index.html"{home_current}>'
+        '<span class="number">00</span><span>书籍首页</span></a></li>'
+    ]
+    for row in rows:
+        current = ' aria-current="page"' if row.slug == active_slug else ""
         items.append(
-            f'<li><a href="{prefix}chapters/chapter{chapter["number"]:02d}.html"{active}>'
-            f'<span class="number">{chapter["number"]:02d}</span><span>{html.escape(chapter["title"])}</span></a></li>'
+            f'<li><a href="{chapter_prefix}{row.slug}.html"{current}>'
+            f'<span class="number">{row.number:02d}</span><span>{escape(row.title)}</span></a></li>'
         )
-    return "\n".join(items)
+    reference_current = ' aria-current="page"' if active_slug == "references" else ""
+    items.append(
+        f'<li><a href="{prefix}references.html"{reference_current}>'
+        '<span class="number">R</span><span>参考资料与许可</span></a></li>'
+    )
+    return '<ol class="toc">' + "".join(items) + "</ol>"
 
 
-def page_shell(title, description, body, current=0, prefix=""):
-    return f"""<!doctype html>
+def sidebar(active_slug: str = "", prefix: str = "") -> str:
+    return (
+        '<aside class="sidebar" id="sidebar" data-sidebar data-open="false">'
+        '<p class="sidebar-title">全书目录</p>'
+        f"{navigation(active_slug, prefix)}"
+        '<p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p>'
+        "</aside>"
+    )
+
+
+def header(prefix: str = "") -> str:
+    return (
+        '<header class="site-header">'
+        f'<a class="brand" href="{prefix}index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a>'
+        '<span class="header-meta">PIXELS · GEOMETRY · RENDERING</span>'
+        '<button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" '
+        'aria-controls="sidebar">目录</button>'
+        "</header>"
+    )
+
+
+def footer() -> str:
+    return (
+        '<footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · '
+        '<a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>'
+    )
+
+
+def document(title: str, active_slug: str, body: str, scripts: tuple[str, ...] = (), prefix: str = "") -> str:
+    script_tags = "".join(f'<script src="{escape(path)}" defer></script>' for path in scripts)
+    return f'''<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{html.escape(description, quote=True)}">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml">
-  <title>{html.escape(title)} · RenderTorch 教学书</title>
+  <title>{escape(title)}</title>
   <link rel="stylesheet" href="{prefix}assets/style.css">
+  <link rel="stylesheet" href="{prefix}assets/vendor/katex/katex.min.css">
+  <script src="{prefix}assets/vendor/katex/katex.min.js" defer></script>
+  <script src="{prefix}assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="{prefix}assets/book.js" defer></script>
-</head>
+{script_tags}</head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="{prefix}index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  {header(prefix)}
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="{prefix}index.html"{' aria-current="page"' if current == 0 else ""}><span class="number">00</span><span>书籍首页</span></a></li>
-        {navigation(current, prefix)}
-      </ol>
-      <p class="sidebar-note">源码分支：<code>{BRANCH}</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
-    <main id="main-content">{body}</main>
+    {sidebar(active_slug, prefix)}
+    <main id="main-content">
+      {body}
+    </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="{REPOSITORY}">GitHub 源码</a></footer>
+  {footer()}
 </body>
 </html>
-"""
+'''
 
 
-def home_page(prefix=""):
-    cards = []
-    milestones = [
-        ("M1–M2", "显示与时间基础", "Qt 最小闭环、软件渲染、固定时间步与碰撞投影。"),
-        ("M3–M5", "三种布料算法", "质量弹簧、PBD、XPBD 共享拓扑并可直接切换。"),
-        ("M6", "刚体与软体", "球体冲量、摩擦、距离约束和四面体体积保持。"),
-    ]
-    for code, title, description in milestones:
-        cards.append(
-            f'<article class="milestone"><span class="status">{code} · 已完成</span>'
-            f'<h3>{title}</h3><p>{description}</p></article>'
+def render_section(section) -> str:
+    return (
+        f'<section class="section chapter-section" id="{escape(section.id)}">'
+        f'<div class="section-label">{escape(section.label)}</div>'
+        f'<div class="prose"><h2>{escape(section.title)}</h2>{section.html}</div>'
+        "</section>"
+    )
+
+
+def render_objectives(row) -> str:
+    objectives = "".join(f"<li>{escape(item)}</li>" for item in row.objectives)
+    prerequisites = "、".join(escape(item) for item in row.prerequisites)
+    return (
+        '<section class="section chapter-section" id="objectives">'
+        '<div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2>'
+        f"<ol>{objectives}</ol><p><strong>先验知识：</strong>{prerequisites}。</p></div></section>"
+    )
+
+
+def render_demo_mount(demo) -> str:
+    return (
+        f'<div class="demo-mount" id="{escape(demo.id)}" data-demo="{escape(demo.id)}">'
+        f"<h3>{escape(demo.title)}</h3><p>{escape(demo.description)}</p></div>"
+    )
+
+
+def render_sources(row) -> str:
+    if not row.sources:
+        return (
+            '<section class="section chapter-section" id="sources">'
+            '<div class="section-label">源码映射</div><div class="prose">'
+            '<h2>概念内容与真实实现</h2><p>本章以浏览器概念实验为主；'
+            'RenderTorch 当前实现的对应文件会在确实存在时列出。</p></div></section>'
         )
-    chapter_cards = []
-    for chapter in CHAPTERS:
-        chapter_cards.append(
-            f'<a class="chapter-card" href="chapters/chapter{chapter["number"]:02d}.html">'
-            f'<span class="chapter-number">{chapter["number"]:02d}</span>'
-            f'<span><strong>{html.escape(chapter["title"])}</strong>'
-            f'<small>{html.escape(chapter["summary"])}</small></span></a>'
+    links = "".join(
+        f'<a class="source-link" href="{escape(source.url)}"><span>{escape(source.path)}</span>'
+        f'<small>{escape(source.status)}</small>↗</a>'
+        for source in row.sources
+    )
+    return (
+        '<section class="section chapter-section" id="sources">'
+        '<div class="section-label">源码映射</div><div class="prose">'
+        '<h2>阅读当前项目的真实实现</h2><div class="source-grid">'
+        f"{links}</div></div></section>"
+    )
+
+
+def page_navigation(row) -> str:
+    rows = CONTENT.chapters()
+    previous = rows[row.number - 2] if row.number > 1 else None
+    following = rows[row.number] if row.number < len(rows) else None
+    left = (
+        f'<a href="{previous.slug}.html"><small>← 上一章</small>{escape(previous.title)}</a>'
+        if previous
+        else '<span></span>'
+    )
+    right = (
+        f'<a href="{following.slug}.html"><small>下一章 →</small>{escape(following.title)}</a>'
+        if following
+        else '<span></span>'
+    )
+    return f'<nav class="page-nav" aria-label="章节导航">{left}{right}</nav>'
+
+
+def render_chapter(row) -> str:
+    sections = list(row.sections)
+    section_ids = {section.id for section in sections}
+    rendered = []
+    if "objectives" not in section_ids:
+        rendered.append(render_objectives(row))
+    for section in sections:
+        rendered.append(render_section(section))
+    if "sources" not in section_ids:
+        rendered.append(render_sources(row))
+    if row.demos:
+        mounts = "".join(render_demo_mount(demo) for demo in row.demos)
+        scripts = tuple(f"../assets/{demo.script}" for demo in row.demos)
+    else:
+        mounts = ""
+        scripts = ()
+    demo_html = (
+        '<section class="section chapter-section" id="demo">'
+        '<div class="section-label">交互实验</div><div class="prose">'
+        f'<h2>让状态变化看得见</h2>{mounts}</div></section>'
+    )
+    rendered.append(demo_html)
+    body = (
+        '<article class="content">'
+        '<header class="chapter-header">'
+        f'<p class="eyebrow">Chapter {row.number:02d} / 15 · {escape(row.unit)}</p>'
+        f'<h1>{escape(row.title)}</h1><p class="lede">{escape(row.summary)}</p>'
+        '<div class="meta-row"><span class="pill">教材式推导</span>'
+        '<span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div>'
+        "</header>"
+        + "".join(rendered)
+        + page_navigation(row)
+        + "</article>"
+    )
+    return document(row.title, row.slug, body, scripts, prefix="../")
+
+
+def render_index(all_chapters=None) -> str:
+    rows = list(all_chapters) if all_chapters is not None else CONTENT.chapters()
+    units = []
+    for unit in dict.fromkeys(row.unit for row in rows):
+        unit_rows = [row for row in rows if row.unit == unit]
+        cards = "".join(
+            f'<a class="chapter-card" href="chapters/{row.slug}.html">'
+            f'<span class="chapter-number">{row.number:02d}</span>'
+            f'<span><strong>{escape(row.title)}</strong><small>{escape(row.summary)}</small></span></a>'
+            for row in unit_rows
         )
-    body = f"""
-    <div class="content">
-      <section class="hero">
-        <p class="eyebrow">从像素到物理 · 中文交互教学书</p>
-        <h1>看清 3D 画面与物理模拟的每一步</h1>
-        <p class="lede">沿着真实 Python 源码，从轨道相机、齐次裁剪和深度缓冲出发，逐步走到三种布料算法、刚体碰撞与软体体积约束。</p>
-        <a class="primary-link" href="chapters/chapter01.html">从第 1 章开始 →</a>
-      </section>
-
-      <section class="section" id="overview">
-        <div class="section-label">项目全景</div>
-        <div class="prose"><h2>不是黑盒演示，而是一条可检查的因果链</h2>
-          <p>RenderTorch 是一个模块化单体：Qt 只负责界面，Scene 保存状态，PyTorch 执行数值计算，软件渲染器生成 FrameBuffer。每种物理方法都有独立实现、可重复初始状态和自动化测试。</p>
-        </div>
-        <div class="milestone-grid" style="margin-top:1.4rem">{''.join(cards)}</div>
-      </section>
-
-      <section class="section" id="metrics">
-        <div class="section-label">当前基线</div>
-        <dl class="metric-grid">
-          <div class="metric"><dt>自动化测试</dt><dd>88 项通过</dd></div>
-          <div class="metric"><dt>默认物理步长</dt><dd>1/120 s · 2 子步</dd></div>
-          <div class="metric"><dt>显示模式</dt><dd>实体 / 线框 / 粒子</dd></div>
-        </dl>
-      </section>
-
-      <section class="section" id="chapters">
-        <div class="section-label">12 章阅读路线</div>
-        <div class="prose"><h2>先建立最小闭环，再替换求解方法</h2>
-          <p>第 1–5 章建立共同语言；第 6–9 章深入布料；第 10–12 章连接刚体、软体、性能与后续扩展。每章都包含公式、伪代码、真实源码、图示、指标和调试清单。</p>
-        </div>
-        <div class="chapter-grid" style="margin-top:1.4rem">{''.join(chapter_cards)}</div>
-      </section>
-
-      <section class="section" id="reading">
-        <div class="section-label">使用方式</div>
-        <div class="prose"><h2>把书与桌面程序放在一起读</h2>
-          <p>先运行 <code>python main_qt.py</code>，在右侧面板切换模拟类型和布料算法。阅读第 6–9 章时保持相同初始状态，切换线框与实体视图，并把单步误差与书中指标对照。</p>
-          <p>第 9 章的浏览器交互示例可以暂停、重置并调整迭代与柔度。它用于展示趋势；精确算法行为以 GitHub 上的 Python 源码和测试为准。</p>
-        </div>
-      </section>
-    </div>
-    """
-    return page_shell(
-        "从像素到物理",
-        "RenderTorch 中文教学书：软件渲染、三种布料算法、刚体与软体。",
-        body,
-        prefix=prefix,
+        units.append(
+            f'<section class="section" id="unit-{len(units) + 1}">'
+            f'<div class="section-label">{escape(unit)}</div><div class="prose">'
+            f'<h2>{escape(unit)}</h2></div><div class="chapter-grid">{cards}</div></section>'
+        )
+    body = (
+        '<div class="content">'
+        '<section class="hero">'
+        '<p class="eyebrow">RenderTorch · 中文交互图形学教材</p>'
+        '<h1>从一个像素，走到完整三维画面</h1>'
+        '<p class="lede">沿着真实数学与代码，从图像坐标、向量和齐次变换出发，'
+        '逐步推导相机、网格、光栅化、材质、阴影与光线追踪。</p>'
+        '<a class="primary-link" href="chapters/chapter01.html">从第 1 章开始 →</a>'
+        '</section>'
+        '<section class="section" id="overview"><div class="section-label">学习路线</div>'
+        '<div class="prose"><h2>先建立共同语言，再替换渲染方法</h2>'
+        '<p>全书 15 章分为四个单元。每章都从直觉开始，给出符号定义、逐步推导、'
+        '数值算例、伪代码和可操作实验；现有 Python 实现与浏览器概念实验会明确分层。</p>'
+        '<p>本阶段先重建 3D 图形学子书。质点弹簧、PBD、XPBD 等物理子书将在图形学内容发布后另行重构。</p>'
+        '</div></section>'
+        + "".join(units)
+        + '<section class="section" id="references"><div class="section-label">开放许可优先</div>'
+        '<div class="prose"><h2>参考资料与原创图解</h2>'
+        '<p>知识点参考开放教材、官方文档和论文；本书正文与 Canvas/SVG 图解均为原创，'
+        '不复制商业教材或论文插图。<a href="references.html">查看参考资料与许可边界。</a></p>'
+        '</div></section></div>'
     )
+    return document("从像素到物理 · RenderTorch 图形学教材", "index", body)
 
 
-def chapter_page(chapter, prefix=""):
-    number = chapter["number"]
-    source_links = "".join(
-        f'<a class="source-link" href="{source_url(path)}"><span>{html.escape(path)}</span>↗</a>'
-        for path in chapter["sources"]
+def render_references() -> str:
+    rows = CONTENT.references()
+    cards = "".join(
+        f'<article class="reference-card"><h2>{escape(row["title"])}</h2>'
+        f'<p class="reference-authors">{escape(row["authors"])}</p>'
+        f'<p><a href="{escape(row["url"])}">{escape(row["url"])}</a></p>'
+        f'<p><span class="status-pill">许可：{escape(row["license"])}</span></p>'
+        f'<p>{escape(row["usage"])}</p></article>'
+        for row in rows
     )
-    metrics = "".join(
-        f'<div class="metric"><dt>{html.escape(label)}</dt><dd>{html.escape(value)}</dd></div>'
-        for label, value in chapter["metrics"]
+    body = (
+        '<article class="content"><header><p class="eyebrow">References</p>'
+        '<h1>参考资料与许可边界</h1><p class="lede">只记录思想来源与使用边界；'
+        '新书正文和图示保持原创。</p></header>'
+        '<section class="section" id="references"><div class="section-label">参考资料</div>'
+        f'<div class="reference-grid">{cards}</div></section>'
+        '<section class="section" id="license"><div class="section-label">使用原则</div><div class="prose">'
+        '<h2>引用知识，不复制受保护内容</h2><ul>'
+        '<li>LearnOpenGL、PBRT 与 Ray Tracing in One Weekend 只核对知识点，不使用其图片或正文。</li>'
+        '<li>所有公式推导、中文讲解、伪代码和 Canvas/SVG 图解由本教材重新组织。</li>'
+        '<li>论文只引用算法与 DOI，不转载论文插图或大段文字。</li>'
+        '<li>后续如复用开放许可素材，必须在页面保留作者、来源和许可链接。</li>'
+        '</ul></div></section></article>'
     )
-    debugging = "".join(f"<li>{item}</li>" for item in chapter["debugging"])
-    previous = (
-        f'<a href="chapter{number - 1:02d}.html"><small>← 上一章</small>{html.escape(CHAPTERS[number - 2]["title"])}</a>'
-        if number > 1 else '<a href="../index.html"><small>← 返回</small>书籍首页</a>'
-    )
-    following = (
-        f'<a href="chapter{number + 1:02d}.html"><small>下一章 →</small>{html.escape(CHAPTERS[number]["title"])}</a>'
-        if number < len(CHAPTERS) else f'<a href="{REPOSITORY}"><small>继续探索 →</small>RenderTorch GitHub</a>'
-    )
-    body = f"""
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter {number:02d} / 12</p>
-        <h1>{html.escape(chapter['title'])}</h1>
-        <p class="lede">{html.escape(chapter['summary'])}</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>{len(chapter['sources'])}</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
-
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>{chapter['intuition']}</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>{chapter['formula']}</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>{html.escape(chapter['pseudocode'].strip())}</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid">{source_links}</div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">{chapter['visual']}</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid">{metrics}</dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list">{debugging}</ol></div></section>
-      <nav class="page-nav" aria-label="章节导航">{previous}{following}</nav>
-    </article>
-    """
-    return page_shell(chapter["title"], chapter["summary"], body, current=number, prefix=prefix)
+    return document("参考资料与许可 · RenderTorch 图形学教材", "references", body)
 
 
-def build(output):
-    output = output.resolve()
-    chapters_dir = output / "chapters"
-    assets_dir = output / "assets"
-    chapters_dir.mkdir(parents=True, exist_ok=True)
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    (output / "index.html").write_text(home_page(), encoding="utf-8")
-    for chapter in CHAPTERS:
-        path = chapters_dir / f"chapter{chapter['number']:02d}.html"
-        path.write_text(chapter_page(chapter, prefix="../"), encoding="utf-8")
-    for name in ("style.css", "book.js", "favicon.svg"):
-        source = SOURCE_DIR / "assets" / name
-        target = assets_dir / name
-        if source.resolve() != target.resolve():
-            shutil.copy2(source, target)
-    print(f"Built {len(CHAPTERS) + 1} pages in {output}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Build the RenderTorch static teaching book.")
-    parser.add_argument("--output", type=Path, default=SOURCE_DIR)
-    arguments = parser.parse_args()
-    build(arguments.output)
+def build(output_dir: Path) -> None:
+    output_dir = Path(output_dir)
+    write(output_dir / "index.html", render_index())
+    write(output_dir / "references.html", render_references())
+    for row in CONTENT.chapters():
+        write(output_dir / "chapters" / f"{row.slug}.html", render_chapter(row))
+    copy_assets(output_dir)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Build the RenderTorch graphics textbook")
+    parser.add_argument("--output", type=Path, default=ROOT)
+    args = parser.parse_args()
+    build(args.output)
+    print(f"Built 17 pages in {args.output.resolve()}")

@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Introduction to Computer Graphics, Version 1.4",
+    "authors": "David J. Eck",
+    "url": "https://math.hws.edu/graphicsbook/",
+    "license": "CC BY-NC-SA 4.0",
+    "usage": "只核对图形学知识点与教学顺序；v2 不复制正文或图片。"
+  },
+  {
+    "title": "LearnOpenGL",
+    "authors": "Joey de Vries",
+    "url": "https://learnopengl.com/About",
+    "license": "图片 CC BY 4.0；代码示例 CC BY-NC 4.0",
+    "usage": "只核对 OpenGL 管线、纹理和阴影概念；v2 图解全部原创，不下载或复用站点图片。"
+  },
+  {
+    "title": "Physically Based Rendering: From Theory to Implementation, 4th edition",
+    "authors": "Matt Pharr, Wenzel Jakob, Greg Humphreys",
+    "url": "https://pbr-book.org/4ed/contents",
+    "license": "CC BY-NC-ND 4.0",
+    "usage": "只引用材质、光照与渲染知识；不复制图片、正文或改编内容。"
+  },
+  {
+    "title": "Ray Tracing in One Weekend",
+    "authors": "Peter Shirley, Trevor David Black, Steve Hollasch",
+    "url": "https://raytracing.github.io/books/RayTracingInOneWeekend.html",
+    "license": "All rights reserved",
+    "usage": "只作为学习参考；不复制正文、代码示例或图片。"
+  },
+  {
+    "title": "University Physics Volume 1",
+    "authors": "OpenStax",
+    "url": "https://openstax.org/books/university-physics-volume-1/pages/preface",
+    "license": "CC BY 4.0",
+    "usage": "留给后续物理子书，用于牛顿力学、能量、动量与振动知识核对。"
+  },
+  {
+    "title": "Physically Based Modeling, SIGGRAPH 2001 Course Notes",
+    "authors": "David Baraff, Andrew Witkin",
+    "url": "https://www.cs.cmu.edu/~baraff/sigcourse/",
+    "license": "Course notes",
+    "usage": "留给后续物理子书，用于约束、碰撞与数值积分知识核对。"
+  },
+  {
+    "title": "Foundations of Physically Based Modeling and Animation",
+    "authors": "John House, John Keyser",
+    "url": "https://books.google.com/books?vid=ISBN9781568818770",
+    "license": "Commercial publication",
+    "usage": "只作为商业教材参考；不复制正文、图片或代码。"
+  },
+  {
+    "title": "Position Based Dynamics",
+    "authors": "Matthias Müller et al.",
+    "url": "https://doi.org/10.1016/j.jvcir.2007.01.005",
+    "license": "Paper citation",
+    "usage": "留给后续物理子书，只引用算法、公式出处与 DOI。"
+  },
+  {
+    "title": "XPBD: Position-Based Simulation of Compliant Constrained Dynamics",
+    "authors": "Miles Macklin et al.",
+    "url": "https://doi.org/10.1145/1399504.1360662",
+    "license": "Paper citation",
+    "usage": "留给后续物理子书，只引用算法、公式出处与 DOI。"
+  }
+]

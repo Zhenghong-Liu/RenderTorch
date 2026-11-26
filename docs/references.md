@@ -16,14 +16,32 @@
 | M6：刚体与软体 | [Blender 刚体简介](https://docs.blender.org/manual/zh-hans/5.1/physics/rigid_body/introduction.html)、[Blender Soft Body](https://docs.blender.org/manual/zh-hans/4.1/physics/soft_body/introduction.html)、PBD/XPBD 论文 | 恢复系数、摩擦、软体目标、距离与体积约束、碰撞调试 | 只参考行为与算法直觉；本项目刚体不含旋转，软体使用六个四面体单元，不照搬商业求解器 |
 | M7：HTML 讲解书 | [Hands-On Modern RL 指标页](https://walkinglabs.github.io/hands-on-modern-rl/chapter01_cartpole/metrics) | 信息组织、源码与图示结合、指标展示、交互式讲解 | 只参考结构，不复制页面素材；书籍内容必须链接当前真实源码 |
 
-## 2. 许可证与署名
+## 2. v2 图形学子书参考资料
+
+完整机器可读索引见 `book/references.json`。以下资料只用于知识点核对、教学顺序与许可边界，不复制受版权保护的正文、插图或实现代码。
+
+| 资料 | 作者 | 许可 | 本书用途与边界 |
+|---|---|---|---|
+| [Introduction to Computer Graphics, Version 1.4](https://math.hws.edu/graphicsbook/) | David J. Eck | CC BY-NC-SA 4.0 | 核对图形学知识点与教学顺序；不复制正文或图片。 |
+| [LearnOpenGL](https://learnopengl.com/About) | Joey de Vries | 图片 CC BY 4.0；代码示例 CC BY-NC 4.0 | 核对 OpenGL 管线、纹理和阴影概念；图解全部原创，不下载或复用站点图片。 |
+| [Physically Based Rendering, 4th edition](https://pbr-book.org/4ed/contents) | Matt Pharr、Wenzel Jakob、Greg Humphreys | CC BY-NC-ND 4.0 | 引用材质、光照与渲染知识；不复制图片、正文或改编内容。 |
+| [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) | Peter Shirley、Trevor David Black、Steve Hollasch | All rights reserved | 仅作学习参考；不复制正文、代码示例或图片。 |
+| [University Physics Volume 1](https://openstax.org/books/university-physics-volume-1/pages/preface) | OpenStax | CC BY 4.0 | 预留给后续物理子书，核对牛顿力学、能量、动量与振动。 |
+| [Physically Based Modeling, SIGGRAPH 2001 Course Notes](https://www.cs.cmu.edu/~baraff/sigcourse/) | David Baraff、Andrew Witkin | Course notes | 预留给后续物理子书，核对约束、碰撞与数值积分。 |
+| [Foundations of Physically Based Modeling and Animation](https://books.google.com/books?vid=ISBN9781568818770) | John House、John Keyser | Commercial publication | 仅作商业教材参考；不复制正文、图片或代码。 |
+| [Position Based Dynamics](https://doi.org/10.1016/j.jvcir.2007.01.005) | Matthias Müller et al. | Paper citation | 预留给后续物理子书，只引用算法、公式出处与 DOI。 |
+| [XPBD](https://doi.org/10.1145/1399504.1360662) | Miles Macklin et al. | Paper citation | 预留给后续物理子书，只引用算法、公式出处与 DOI。 |
+
+图形学子书另使用本地 KaTeX 0.16.47 渲染公式；其 MIT 许可证随静态资源保存在 `book/assets/vendor/katex/LICENSE`。
+
+## 3. 许可证与署名
 
 - **Matter.js**：MIT。若后续复用代码，保留 Liam Brummitt 的版权与许可声明；许可证来源：[matter-js](https://github.com/liabru/matter-js)。
 - **Blender 文档**：CC BY-SA 4.0。若复用文字或图像，署名 Blender Documentation Team、附来源链接，并按相同方式共享衍生内容；许可证来源：[Blender Copyright](https://docs.blender.org/manual/zh-hans/3.6/copyright.html)。
 - **PBD / XPBD 论文**：未发现开放再许可，按默认版权处理。课程中只给出原创概述、公式引用与伪代码，不复制论文插图或大段文字。
 - **Qt / PyTorch**：使用官方公开 API，不把文档示例视为可自由再分发的项目素材。
 
-## 3. 从资料到项目的设计约束
+## 4. 从资料到项目的设计约束
 
 1. 核心场景与相机数学不导入 Qt、Pygame 或窗口 API。
 2. FrameBuffer 独立保存 RGBA、深度和物体 ID；Qt 只负责显示与输入。
@@ -32,7 +50,7 @@
 5. 后续三种布料算法共用粒子、约束、碰撞体和固定步长，但每个算法独立成文件、独立测试。
 6. 每个教学 Demo 都应提供可重复初始状态、重置、暂停、单步和误差指标。
 
-## 4. 当前环境核验
+## 5. 当前环境核验
 
 - Python：`pythonTry` / Python 3.11.9。
 - PyTorch：2.3.1；MPS 是否可用由运行时检查决定。
