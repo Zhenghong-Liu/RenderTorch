@@ -3,85 +3,120 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="刚体保持形状，软体用距离和四面体体积约束抵抗变形。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>刚体与软体 Demo · RenderTorch 教学书</title>
+  <title>齐次裁剪与三角形光栅化</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter10.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html" aria-current="page"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html" aria-current="page"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 10 / 12</p>
-        <h1>刚体与软体 Demo</h1>
-        <p class="lede">刚体保持形状，软体用距离和四面体体积约束抵抗变形。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 10 / 15 · 三、光栅管线</p><h1>齐次裁剪与三角形光栅化</h1><p class="lede">在齐次空间裁剪几何，再用边函数和像素中心判断三角形覆盖。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明为什么透视除法前必须做近裁剪</li><li>从边函数推导重心坐标和覆盖判断</li></ol><p><strong>先验知识：</strong>第 4 章的投影与视口、第 2 章的二维叉积。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">把连续三角形交给离散像素</div><div class="prose"><h2>光栅化就是判断哪些像素中心被覆盖</h2><p>经过投影和视口变换，三角形已经成为屏幕上的三个二维点。
+                但屏幕并不是连续画布，而是由有限像素组成。渲染器必须决定：
+                某个像素要不要写入这个三角形，以及写入时使用哪些顶点属性。</p>
+                <p>齐次裁剪负责先去掉视锥外的部分，透视除法负责把裁剪空间变成 NDC。
+                只有完成这两步，边函数才能在正常的二维屏幕坐标中工作。
+                若相机背后的顶点直接除以 \(w\)，投影位置会被错误反射或发散，三角形可能连接错误的屏幕区域。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="三角形覆盖像素中心与包围盒">
+                <defs><pattern id="raster-grid" width="42" height="42" patternUnits="userSpaceOnUse"><rect width="42" height="42" fill="#f6f3eb" stroke="#d9ddd5"/></pattern></defs>
+                <rect x="55" y="30" width="420" height="230" fill="url(#raster-grid)"/>
+                <path d="M97 219L347 219L138 73Z" fill="#087f83" fill-opacity=".22" stroke="#087f83" stroke-width="3"/>
+                <path d="M76 241H387V52" fill="none" stroke="#c66b35" stroke-width="2" stroke-dasharray="6 5"/>
+                <g fill="#c66b35"><circle cx="118" cy="198" r="4"/><circle cx="160" cy="198" r="4"/><circle cx="202" cy="198" r="4"/><circle cx="244" cy="198" r="4"/><circle cx="286" cy="198" r="4"/><circle cx="328" cy="198" r="4"/><circle cx="160" cy="156" r="4"/><circle cx="202" cy="156" r="4"/><circle cx="244" cy="156" r="4"/></g>
+                <text x="392" y="245" fill="#854721">包围盒</text><text x="365" y="70" fill="#854721">像素中心</text>
+                </svg><p><strong>图 10.1</strong>　只在三角形包围盒内测试像素中心；橙色虚线是包围盒，不是覆盖边界。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>齐次裁剪平面与边函数</h2><p>设裁剪空间点为 \(\mathbf q=(x_c,y_c,z_c,w_c)\)。
+                在除以 \(w_c\) 之前，六个裁剪平面要求：</p>
+                <div class="formula">\[\begin{aligned}
+                -w_c&\le x_c\le w_c,&-w_c&\le y_c\le w_c,\\
+                -w_c&\le z_c\le w_c,&w_c&>0.
+                \end{aligned}\]</div>
+                <p>最后一条保证透视除数有效。near 平面对应 \(z_c+w_c\ge0\)，
+                因此相机后方或穿过近平面的几何必须先被裁掉。</p>
+                <p>对屏幕二维点，定义边函数：</p>
+                <div class="formula">\[E(a,b,p)=(p_x-a_x)(b_y-a_y)-(p_y-a_y)(b_x-a_x).\]</div>
+                <p>它等于有向面积的两倍，也等于二维叉积的相反数。
+                对同一个三角形，三条边函数使用同一个面积作分母时，符号会相互抵消，
+                因此不必强行让某一种顶点顺序产生正面积。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从裁剪平面到重心坐标</h2><p><strong>第一步：齐次裁剪。</strong> 对每条线段或每个多边形边，
+                计算两端到裁剪平面的有符号距离。若两端都在外部，整段丢弃；
+                若一内一外，在齐次坐标中求交点：</p>
+                <div class="formula">\[t=\frac{d_{\mathrm{prev}}}{d_{\mathrm{prev}}-d_{\mathrm{cur}}},\qquad
+                \mathbf q_{\mathrm{hit}}=\mathbf q_{\mathrm{prev}}+
+                t(\mathbf q_{\mathrm{cur}}-\mathbf q_{\mathrm{prev}}).\]</div>
+                <p>不能先在 NDC 中裁剪，因为除以 \(w\) 会丢失齐次空间中的直线关系。
+                裁剪完成后，每个顶点的 \(w\) 都应为正，再执行
+                \((x_{\mathrm{ndc}},y_{\mathrm{ndc}},z_{\mathrm{ndc}})=(x_c/w_c,y_c/w_c,z_c/w_c)\)。</p>
+                <p><strong>第二步：有符号面积。</strong> 令 \(A=E(a,b,c)\)。
+                大三角形面积是 \(|A|/2\)。点 \(p\) 与三条边分别形成三个子三角形，
+                它们的面积比就是重心坐标：</p>
+                <div class="formula">\[\lambda_0=\frac{E(b,c,p)}{A},\qquad
+                \lambda_1=\frac{E(c,a,p)}{A},\qquad
+                \lambda_2=1-\lambda_0-\lambda_1.\]</div>
+                <p><strong>第三步：覆盖判断。</strong> 对非退化三角形，
+                点在里面当且仅当三个 \(\lambda\) 都非负。屏幕像素的中心是
+                \((x+0.5,y+0.5)\)，所以遍历整数 \(x,y\) 后要加 0.5。</p>
+                <p><strong>第四步：包围盒。</strong> 最小候选范围由顶点极值给出：</p>
+                <div class="formula">\[\begin{aligned}
+                x_{\min}&=\max(0,\lfloor\min(x_a,x_b,x_c)\rfloor),&
+                x_{\max}&=\min(W,\lceil\max(x_a,x_b,x_c)\rceil),\\
+                y_{\min}&=\max(0,\lfloor\min(y_a,y_b,y_c)\rfloor),&
+                y_{\max}&=\min(H,\lceil\max(y_a,y_b,y_c)\rceil).
+                \end{aligned}\]</div>
+                <p>若 \(|A|&lt;\epsilon\)，三角形退化，直接跳过。否则除以极小面积会产生巨大坐标和 NaN，
+                后续属性插值与深度写入都会失去意义。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个像素中心的三个重心坐标</h2><p>取屏幕三角形 \(a=(2,2)\)、\(b=(8,2)\)、\(c=(2,7)\)，
+                待测像素中心 \(p=(3.5,2.5)\)。边函数面积为：</p>
+                <div class="formula">\[A=E(a,b,c)=(8-2)(2-2)-(7-2)(8-2)=-30.\]</div>
+                <p>三个子面积比为：</p>
+                <div class="formula">\[\begin{aligned}
+                \lambda_0&=\frac{E(b,c,p)}{-30}=0.65,\\
+                \lambda_1&=\frac{E(c,a,p)}{-30}=0.25,\\
+                \lambda_2&=1-0.65-0.25=0.10.
+                \end{aligned}\]</div>
+                <p>三者都非负且和为 1，因此像素被覆盖。用它们重建 \(p\)：
+                \(0.65a+0.25b+0.10c=(3.5,2.5)\)，与原始像素中心一致。</p>
+                <div class="callout"><strong>边界规则：</strong>当 \(\lambda\) 恰好为 0，点在三角形边上。
+                相邻三角形共享边时，需要统一采用 top-left 等规则，避免同一条边被重复光栅化。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>最小三角形覆盖循环</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>const area = edge(a, b, c);
+if (Math.abs(area) &lt; 1e-12) return;
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>刚体 Demo 使用一个有半径的动态球体。它没有旋转自由度，重点观察重力、地面与静态球碰撞、恢复系数、摩擦，以及球体对布料粒子的双向冲量。</p>
-<p>软体 Demo 使用 3×3×3 粒子格点，其中包含内部中心粒子。距离约束维持形状，六个四面体体积约束共同维持立方体体积。体积梯度来自四面体有符号体积对各顶点位置的偏导。</p>
-<div class="callout"><strong>边界：</strong>这是教学级实现，不包含完整接触流形、连续碰撞检测、真实刚体旋转或通用有限元。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">刚体法向冲量：j = −(1 + e) v<sub>n</sub> / (w<sub>body</sub> + w<sub>particle</sub>)<br>V<sub>tet</sub> = ((b − a) × (c − a)) · (d − a) / 6<br>XPBD 体积：Δλ = (−C − α̃λ) / (Σw<sub>i</sub>|∇C<sub>i</sub>|² + α̃)</div>
-<p>体积约束使用解析梯度，不需要 autograd。梯度方向决定每个顶点应该移动多少。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code># 刚体
-velocity += gravity * h
-position += velocity * h
-project_out_of_ground_and_static_sphere()
-apply_restitution_and_coulomb_friction()
-
-# 软体
-for iteration:
-    project_distance_constraints_with_xpbd()
-    for tetrahedron:
-        compute_volume_and_analytic_gradients()
-        update_lambda_and_particle_positions()</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/rigidbody/sphere.py"><span>physics/rigidbody/sphere.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/geometry.py"><span>physics/softbody/geometry.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/xpbd.py"><span>physics/softbody/xpbd.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 280" role="img" aria-label="刚体球与软体体积约束">
-  <circle cx="140" cy="95" r="58" fill="var(--warm-soft)" stroke="var(--warm)" stroke-width="3"/><path d="M35 210 H245" stroke="var(--muted)" stroke-width="3"/><path d="M140 153 V199" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow1)"/><text x="92" y="250">刚体：形状不变</text>
-  <g fill="var(--accent)"><circle cx="430" cy="50" r="5"/><circle cx="530" cy="50" r="5"/><circle cx="430" cy="150" r="5"/><circle cx="530" cy="150" r="5"/><circle cx="480" cy="100" r="5"/></g>
-  <g stroke="var(--accent)" stroke-width="2"><path d="M430 50 L530 50 L530 150 L430 150 Z M430 50 L480 100 L530 150 M530 50 L480 100 L430 150"/></g>
-  <text x="405" y="250">软体：体积恢复</text>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>软体格点</dt><dd>27 粒子，含 1 个内部粒子</dd></div><div class="metric"><dt>体积单元</dt><dd>6 个四面体</dd></div><div class="metric"><dt>刚体摩擦</dt><dd>库仑上限截断</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>球体穿过地面：碰撞判断要使用球心到平面的距离减去 radius。</li><li>软体体积恢复但整体偏斜：顺序投影会破坏对称，增加迭代或检查拓扑。</li><li>冲量交换不守恒：确认粒子与球体使用相同法线方向，并按总逆质量分配。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter09.html"><small>← 上一章</small>三种布料算法的比较</a><a href="chapter11.html"><small>下一章 →</small>性能、稳定性与局限性</a></nav>
-    </article>
+for (let y = minY; y &lt; maxY; y += 1) {
+  for (let x = minX; x &lt; maxX; x += 1) {
+    const p = { x: x + 0.5, y: y + 0.5 };
+    const l0 = edge(b, c, p) / area;
+    const l1 = edge(c, a, p) / area;
+    const l2 = 1 - l0 - l1;
+    const covered = Number.isFinite(l0) &amp;&amp; l0 &gt;= 0 &amp;&amp; l1 &gt;= 0 &amp;&amp; l2 &gt;= 0;
+    if (covered) writePixel(x, y);
+  }
+}</code></pre></div>
+                <p>RenderTorch 的 <code>rasterize_triangle</code> 使用 NumPy 批量计算整个包围盒，
+                并用 <code>-1e-6</code> 容差处理共享边。这个容差很实用，但不等同于严格的 top-left 规则。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>覆盖、裁剪与退化</h2><details><summary>问题 1：为什么不能先除以 w 再裁剪？</summary>
+                <p><strong>答案：</strong>相机背后或近平面外的点可能得到错误符号，且除法会破坏齐次空间中用于求交的线性关系。</p></details>
+                <details><summary>问题 2：包围盒内的像素一定被三角形覆盖吗？</summary>
+                <p><strong>答案：</strong>不一定。包围盒只是候选范围，三个角上的像素常常在三角形外。</p></details>
+                <details><summary>问题 3：面积接近零时为什么应直接跳过？</summary>
+                <p><strong>答案：</strong>面积比会放大数值误差，退化成线段或点的三角形没有稳定内部区域。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>三角形消失、裂缝与重复边</h2><ol class="debug-list"><li><strong>整个三角形消失：</strong>检查裁剪平面的内外符号、\(w\) 的正负和视口 y 翻转。</li>
+                <li><strong>三角形巨大：</strong>检查是否漏掉近裁剪，或把齐次坐标误当作 NDC。</li>
+                <li><strong>边缘双缝：</strong>检查共享边是否被两个面同时写入，以及是否使用统一 top-left 规则。</li>
+                <li><strong>像素偏移：</strong>检查是否使用像素中心 \(x+0.5,y+0.5\)，而不是整数角点。</li>
+                <li><strong>NaN 扩散：</strong>在面积比、逆深度和属性除法前检查退化与零分母。</li></ol>
+                <p>最小复现应当只有 1 个三角形和 1 个像素。先打印 \(A\)、三个 \(\lambda\) 和像素中心，再逐步加入裁剪与深度。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前裁剪与光栅化实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验允许拖动三个顶点和探针点，
+                实时显示边函数面积、重心坐标和覆盖结果，并可把三角形拖成退化状态。</p>
+                <p><span class="status-pill">现有 RenderTorch</span>
+                <code>renderer/clipping.py</code> 在六个齐次平面上裁剪多边形；
+                <code>renderer/pipeline.py</code> 把裁剪后的多边形扇形成三角形；
+                <code>renderer/rasterizer.py</code> 使用包围盒、像素中心和边函数覆盖率测试。</p>
+                <p><span class="status-pill">后续实现路线</span> 当前共享边使用 <code>-1e-6</code> 容差，
+                尚未实现严格 top-left 规则、保守光栅化和 MSAA。增加这些功能前，应先固定共享边的覆盖契约。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/clipping.py"><span>renderer/clipping.py</span><small>现有实现：六个齐次裁剪平面与多边形交点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：包围盒、边函数与像素中心</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：裁剪多边形扇形成三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="raster-demo" data-demo="raster-demo"><h3>边函数、像素中心与三角形覆盖</h3><p>拖动顶点或探针点，查看面积、重心坐标、覆盖状态与退化保护。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter09.html"><small>← 上一章</small>场景、模型文件、场景图与包围体</a><a href="chapter11.html"><small>下一章 →</small>重心坐标、属性插值、深度与遮挡</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

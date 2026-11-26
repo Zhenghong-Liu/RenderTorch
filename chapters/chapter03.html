@@ -3,82 +3,144 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="把三维坐标经过视图、投影和视口变换送到像素平面。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>最小闭环：相机、投影和 FrameBuffer · RenderTorch 教学书</title>
+  <title>齐次坐标与几何变换</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter03.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html" aria-current="page"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html" aria-current="page"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 03 / 12</p>
-        <h1>最小闭环：相机、投影和 FrameBuffer</h1>
-        <p class="lede">把三维坐标经过视图、投影和视口变换送到像素平面。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 03 / 15 · 一、像素与数学</p><h1>齐次坐标与几何变换</h1><p class="lede">用统一矩阵表示平移、旋转和缩放，并理解变换顺序与法线矩阵。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>写出三维齐次点和基本变换矩阵</li><li>解释先缩放再旋转最后平移的复合顺序</li></ol><p><strong>先验知识：</strong>第 2 章的向量运算、基础矩阵乘法。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">让几何移动而不修改每个顶点</div><div class="prose"><h2>矩阵是坐标变换的规则</h2><p>一个模型可能包含数十万个顶点。逐个修改坐标既慢又容易不一致。
+更高效的方法是构造一个矩阵，对每个点执行同一套线性变换，再统一加上平移。
+模型移动、相机旋转和物体缩放，都可以写成这种规则。</p>
+<p>本章统一采用<strong>列向量</strong>约定：点是四元素列向量，矩阵写在左边，
+\(\mathbf p'=M\mathbf p\)。有些 API 使用行向量，此时矩阵需要转置、书写顺序也要反过来。
+约定本身没有优劣，但全篇必须一致。</p>
+<div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="一个正方形先缩放再旋转最后平移">
+<defs><marker id="arrow-a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L8 3L0 6Z" fill="#c66b35"/></marker></defs>
+<rect x="70" y="100" width="80" height="80" fill="none" stroke="#087f83" stroke-width="4"/>
+<rect x="190" y="70" width="160" height="160" fill="none" stroke="#c66b35" stroke-width="3" transform="rotate(-25 270 150)"/>
+<path d="M260 170l120 15" stroke="#62727a" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-a)"/>
+<text x="75" y="210" fill="#087f83">局部形状</text><text x="210" y="250" fill="#c66b35">缩放 → 旋转 → 平移</text>
+</svg><p><strong>图 3.1</strong>　复合变换从右向左作用于列向量，几何顺序则是先缩放、再旋转、最后平移。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>齐次点与四种基本矩阵</h2><p>三维点写成 \(\mathbf p=(x,y,z,1)^\mathsf T\)。第四个分量用于区分平移：
+点的 w=1，方向向量的 w=0。乘以含平移的矩阵时，方向不会受到位置平移影响。</p>
+<div class="formula">\[\begin{aligned}
+T(\mathbf t)&=
+\begin{pmatrix}
+1&0&0&t_x\\
+0&1&0&t_y\\
+0&0&1&t_z\\
+0&0&0&1
+\end{pmatrix}, &
+S(\mathbf s)&=
+\begin{pmatrix}
+s_x&0&0&0\\
+0&s_y&0&0\\
+0&0&s_z&0\\
+0&0&0&1
+\end{pmatrix}.
+\end{aligned}\]</div>
+<p>绕三个坐标轴旋转的矩阵为：</p>
+<div class="formula">\[\begin{aligned}
+R_x(\alpha)&=
+\begin{pmatrix}
+1&0&0&0\\
+0&c&-s&0\\
+0&s&c&0\\
+0&0&0&1
+\end{pmatrix}, &
+R_y(\alpha)&=
+\begin{pmatrix}
+c&0&s&0\\
+0&1&0&0\\
+-s&0&c&0\\
+0&0&0&1
+\end{pmatrix}, \\
+R_z(\alpha)&=
+\begin{pmatrix}
+c&-s&0&0\\
+s&c&0&0\\
+0&0&1&0\\
+0&0&0&1
+\end{pmatrix}. &&
+\end{aligned}\]</div>
+<p>其中 \(c=\cos\alpha\)、\(s=\sin\alpha\)。列向量约定下，绕 z 轴正向旋转把
++x 转向 +y，符合右手定则。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>复合顺序与法线变换</h2><p>如果先把点缩放 S，再旋转 R，最后平移 T，那么：</p>
+<div class="formula">\[\begin{aligned}
+\mathbf p_1&=S\mathbf p, \\
+\mathbf p_2&=R\mathbf p_1=RS\mathbf p, \\
+\mathbf p'&=T\mathbf p_2=TRS\mathbf p, \\
+M&=TRS.
+\end{aligned}\]</div>
+<p>矩阵乘法不满足交换律，所以 \(TRS\) 一般不等于 \(SRT\)。
+观察平移能否被后续旋转带走，最容易发现顺序写反。</p>
+<p>位置使用 M，法线却通常不能直接使用 M。设模型变换的线性部分为 A，
+表面切向量 t 变换为 \(\mathbf t'=A\mathbf t\)。法线 n 必须继续满足
+\(\mathbf n'\cdot\mathbf t'=0\)，因此寻找矩阵 N，使：</p>
+<div class="formula">\[\begin{aligned}
+(N\mathbf n)^\mathsf T(A\mathbf t)
+&=\mathbf n^\mathsf T N^\mathsf T A\mathbf t=0, \\
+N^\mathsf T A&=I \quad\Longrightarrow\quad N=A^{-\mathsf T}.
+\end{aligned}\]</div>
+<p>若把整个仿射模型矩阵记作 M，并对方向使用 w=0，则也常把法线矩阵写作
+\(M^{-\mathsf T}\)；求值时通常只取其左上角 3×3 线性部分。对于非均匀缩放，
+直接使用 M 会让法线方向错误。通常先求逆转置，再归一化结果；若 A 不可逆，
+说明变换把几何压扁，需要另行处理。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个点与一条法线经过复合变换</h2><p>取 \(\mathbf p=(1,0,0,1)^\mathsf T\)、\(S=\operatorname{diag}(2,1,1)\)、
+绕 y 轴旋转 90°，以及 \(\mathbf t=(1,2,3)\)。</p>
+<div class="formula">\[\begin{aligned}
+S\mathbf p&=(2,0,0,1)^\mathsf T, \\
+R_y(90^\circ)S\mathbf p&=(0,0,-2,1)^\mathsf T, \\
+TR_y(90^\circ)S\mathbf p&=(1,2,1,1)^\mathsf T.
+\end{aligned}\]</div>
+<p>若局部法线是 \(\mathbf n=(1,0,0)\)，先求 \(A=R_y(90^\circ)S\)。
+缩放部分的逆是 \(\operatorname{diag}(1/2,1,1)\)，旋转后再逆转置，最终法线方向为
+\((0,0,-1)\)。这与旋转后的 −z 面一致。</p>
+<div class="callout"><strong>错误对照：</strong> 如果直接把 \(\mathbf n=(1,0,0)\) 乘 M，
+会得到带平移的奇怪结果；即使忽略平移，先缩放再旋转也会错误地保留 x 方向。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>先建立约定，再封装矩阵</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 列向量约定</span><button class="copy-button" type="button" data-copy>复制</button></div>
+<pre><code>def translation(tx, ty, tz):
+    return [[1, 0, 0, tx], [0, 1, 0, ty],
+            [0, 0, 1, tz], [0, 0, 0, 1]]
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>轨道相机围绕目标点旋转。视图矩阵把世界坐标变成相机坐标，透视矩阵把视锥映射到齐次裁剪空间，视口矩阵再把 NDC 映射到屏幕像素。</p>
-<p>项目使用行向量约定：<code>world × View × Projection × Viewport</code>。这与不少 OpenGL 教材的列向量顺序不同，混用会导致看似随机的旋转和裁剪错误。</p>
-<div class="callout"><strong>生活类比：</strong>相机位置决定你站在哪里，视锥决定你能看多宽，FrameBuffer 则相当于一张等待曝光的数字底片。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">p<sub>clip</sub> = p<sub>world</sub> M<sub>view</sub> M<sub>projection</sub><br>p<sub>ndc</sub> = p<sub>clip</sub> / w<sub>clip</sub><br>x<sub>screen</sub> = (x<sub>ndc</sub> + 1) width / 2<br>y<sub>screen</sub> = (1 − y<sub>ndc</sub>) height / 2</div>
-<p>透视除法必须在近裁剪面之后进行。像素 Y 向下，而 NDC Y 向上，所以需要翻转。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>view = look_at(camera.position, camera.target, world_up)
-projection = perspective(fov_y, aspect, near, far)
-clip = world_vertices @ view @ projection
-inside = clip.z &gt;= -clip.w and clip.z &lt;= clip.w
-ndc = inside_clip / inside_clip.w
-pixel = viewport(ndc, width, height)</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/compute/camera.py"><span>compute/camera.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/compute/projection.py"><span>compute/projection.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 280" role="img" aria-label="世界坐标到屏幕像素的变换链">
-  <g class="svg-node"><rect x="20" y="100" width="115" height="70" rx="10"/><text x="77" y="141">世界坐标</text>
-    <rect x="175" y="100" width="115" height="70" rx="10"/><text x="232" y="141">视图矩阵</text>
-    <rect x="330" y="100" width="115" height="70" rx="10"/><text x="387" y="141">投影矩阵</text>
-    <rect x="485" y="100" width="95" height="70" rx="10"/><text x="532" y="141">NDC</text>
-    <rect x="620" y="100" width="80" height="70" rx="10"/><text x="660" y="141">像素</text></g>
-  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)"><path d="M135 135 H175"/><path d="M290 135 H330"/><path d="M445 135 H485"/><path d="M580 135 H620"/></g>
-  <path d="M77 100 L45 35 L110 35 Z" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="47" y="22">相机视锥</text>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>相机距离</dt><dd>3.0，范围 0.5–50</dd></div><div class="metric"><dt>默认 FOV</dt><dd>55° 垂直视场角</dd></div><div class="metric"><dt>深度缓冲</dt><dd>float32，初始 +∞</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>所有面都消失：检查 forward 方向与近远平面符号。</li><li>图像上下颠倒：检查视口矩阵是否翻转 Y。</li><li>窗口缩放后物体被拉长：确认 projection_aspect 使用最新宽高比。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter02.html"><small>← 上一章</small>总体架构与模块边界</a><a href="chapter04.html"><small>下一章 →</small>软件光栅化与 Qt 图像显示</a></nav>
-    </article>
+def scale(sx, sy, sz):
+    return [[sx, 0, 0, 0], [0, sy, 0, 0],
+            [0, 0, sz, 0], [0, 0, 0, 1]]
+
+def transform_point(matrix, point):
+    x, y, z, w = matrix @ [*point, 1.0]
+    return (x / w, y / w, z / w)
+
+def transform_normal(matrix, normal):
+    linear = matrix[:3, :3]
+    result = inverse(linear).T @ normal
+    return result / norm(result)</code></pre></div>
+<p>本章实验只组合缩放、绕 z 轴旋转和平移，便于把每个中间结果与手算对应。
+项目源码中的相机旋转采用张量乘法，阅读时必须先识别它使用的是行向量还是列向量。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>检查矩阵作用的顺序</h2><details><summary>问题 1：列向量约定下，T R S 对应什么几何顺序？</summary>
+<p><strong>答案：</strong>先缩放 S，再旋转 R，最后平移 T。</p></details>
+<details><summary>问题 2：方向向量的 w 应设为 0 还是 1？</summary>
+<p><strong>答案：</strong>0，这样平移不会作用在方向上。</p></details>
+<details><summary>问题 3：非均匀缩放后，法线为什么需要逆转置？</summary>
+<p><strong>答案：</strong>法线必须与变换后的切向量保持垂直；直接使用 M 一般不满足这个条件。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>变换错误的快速定位</h2><ol class="debug-list"><li><strong>一次只改变一种变换：</strong>先验证纯平移、纯旋转或纯缩放，再组合。</li>
+<li><strong>使用轴对齐测试点：</strong>(1,0,0) 经过 90° 旋转应落到坐标轴上，符号一目了然。</li>
+<li><strong>检查齐次 w：</strong>点的 w 通常为 1，方向为 0；投影变换后则需要透视除法。</li>
+<li><strong>打印中间结果：</strong>分别输出 S p、R S p、T R S p，不要只检查最终矩阵。</li>
+<li><strong>法线单独测试：</strong>用非均匀缩放观察法线是否仍与对应边垂直。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>概念变换器与现有相机代码</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验实时显示点、法线和物体轮廓的变换，
+并列出点与法线的变换结果。它用于建立矩阵顺序的直觉，不是完整场景图。</p>
+<p><span class="status-pill">现有 RenderTorch</span>
+<code>viewing/camera.py</code> 已包含相机旋转、平移和视图矩阵片段，但其张量排列采用行方向计算。
+阅读第 9 章场景图时需要先做一次约定核对。</p>
+<p><span class="status-pill">后续实现路线</span> 模型矩阵、场景图、法线矩阵应在统一坐标约定后实现，
+并用旋转可逆性、平移不改变法线、非均匀缩放垂直性作为回归测试。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/camera.py"><span>viewing/camera.py</span><small>现有实现：相机旋转与平移矩阵</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="transform-demo" data-demo="transform-demo"><h3>变换合成器：缩放、旋转与平移</h3><p>调整变换参数，观察列向量公式 M = T R S 与法线矩阵 A⁻ᵀ。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter02.html"><small>← 上一章</small>三维空间、向量、点与方向</a><a href="chapter04.html"><small>下一章 →</small>相机、视图、投影与视口</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

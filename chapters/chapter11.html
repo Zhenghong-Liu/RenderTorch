@@ -3,81 +3,116 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="先测量，再优化；把 NaN、能量增长和约束误差当作诊断信号。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>性能、稳定性与局限性 · RenderTorch 教学书</title>
+  <title>重心坐标、属性插值、深度与遮挡</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter11.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html" aria-current="page"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html" aria-current="page"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 11 / 12</p>
-        <h1>性能、稳定性与局限性</h1>
-        <p class="lede">先测量，再优化；把 NaN、能量增长和约束误差当作诊断信号。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 11 / 15 · 三、光栅管线</p><h1>重心坐标、属性插值、深度与遮挡</h1><p class="lede">使用透视矫正插值和深度缓冲解决属性偏差与遮挡顺序问题。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释为什么深度要插值 1/w</li><li>比较画家算法与 z-buffer 的逐像素结果</li></ol><p><strong>先验知识：</strong>第 10 章的重心坐标、基础深度比较。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">像素里的深度与属性</div><div class="prose"><h2>屏幕线性不等于世界线性</h2><p>一个三角形覆盖某个像素后，渲染器需要得到该像素处的颜色、法线、纹理坐标和深度。
+                最直觉的做法是对三个顶点值直接做线性插值，但透视投影会破坏这种线性关系：
+                屏幕中央的一小段，可能对应世界中很长的一段。</p>
+                <p>正确做法分为两拍：先插值顶点的 \(1/w\) 与 \(q/w\)，再相除恢复 \(q\)。
+                深度缓存则保存每个像素已经写入的最近距离，用一次比较解决遮挡问题。
+                它让三角形可以任意顺序提交，而画家算法必须依靠“远的先画、近的后画”。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="线性深度与透视正确深度对比">
+                <rect x="60" y="45" width="240" height="180" rx="10" fill="#f6f3eb" stroke="#d9ddd5"/>
+                <rect x="340" y="45" width="240" height="180" rx="10" fill="#f6f3eb" stroke="#d9ddd5"/>
+                <line x1="100" y1="210" x2="260" y2="210" stroke="#68757a"/>
+                <path d="M100 210L120 100L250 70Z" fill="#087f83" fill-opacity=".18" stroke="#087f83" stroke-width="2"/>
+                <line x1="100" y1="210" x2="180" y2="135" stroke="#c66b35" stroke-width="4"/>
+                <line x1="340" y1="210" x2="500" y2="210" stroke="#68757a"/>
+                <path d="M340 210L360 100L490 70Z" fill="#c66b35" fill-opacity=".18" stroke="#c66b35" stroke-width="2"/>
+                <line x1="340" y1="210" x2="420" y2="135" stroke="#087f83" stroke-width="4"/>
+                <text x="88" y="255">直接线性 w：深度偏大</text><text x="350" y="255">插值 1/w：透视正确</text>
+                <circle cx="140" cy="172" r="6" fill="#c66b35"/><circle cx="380" cy="172" r="6" fill="#087f83"/>
+                </svg><p><strong>图 11.1</strong>　同一个屏幕参数 \(t\)，两种插值会得到不同距离。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>齐次 w、逆深度与深度缓存</h2><p>设三角形三个顶点的裁剪空间齐次坐标为
+                \(\mathbf q_i=(x_i,y_i,z_i,w_i)\)，且 \(w_i&gt;0\)。
+                透视除法后，屏幕重心坐标为 \(\lambda_i\)。</p>
+                <p>定义像素处的逆深度与属性：</p>
+                <div class="formula">\[\frac{1}{w_{\mathrm{pixel}}}
+                =\sum_{i=0}^{2}\frac{\lambda_i}{w_i},\qquad
+                \widetilde q_{\mathrm{pixel}}=\sum_{i=0}^{2}\lambda_i\frac{q_i}{w_i}.\]</div>
+                <div class="formula">\[w_{\mathrm{pixel}}=\frac{1}{\sum_i\lambda_i/w_i},\qquad
+                q_{\mathrm{pixel}}=\frac{\widetilde q_{\mathrm{pixel}}}{1/w_{\mathrm{pixel}}}.\]</div>
+                <p>RenderTorch 当前把正的 \(w\) 当作深度值保存。
+                相机空间采用前向 \(-\mathbf z\) 时，\(w=-z_{\mathrm{view}}\)，所以 \(w\) 越小越近。</p>
+                <p>深度缓存 \(D(x,y)\) 保存该像素已写入的最近深度，初始为 \(+\infty\)。
+                只有更近的片元才能覆盖已有颜色。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>为什么必须插值倒数</h2><p><strong>第一步：世界线段参数与屏幕参数不同。</strong>
+                透视投影把每条视线上的距离压缩到屏幕位置。屏幕参数 \(\lambda\) 不是世界空间的线性参数，
+                因此 \(w\) 与颜色不能直接用 \(\sum_i\lambda_i w_i\)、\(\sum_i\lambda_i q_i\) 恢复。</p>
+                <p><strong>第二步：构造线性量。</strong> 齐次裁剪坐标中，
+                顶点处有 \(\widetilde q_i=q_i/w_i\) 和 \(r_i=1/w_i\)。
+                这两个量在屏幕空间随重心坐标线性变化：</p>
+                <div class="formula">\[r_{\mathrm{pixel}}=\sum_i\lambda_i r_i,\qquad
+                \widetilde q_{\mathrm{pixel}}=\sum_i\lambda_i\widetilde q_i.\]</div>
+                <p><strong>第三步：消除分母。</strong> 因为 \(q=\widetilde q/r\)，所以：</p>
+                <div class="formula">\[q_{\mathrm{pixel}}=
+                \frac{\sum_i\lambda_i(q_i/w_i)}{\sum_i\lambda_i(1/w_i)},\qquad
+                w_{\mathrm{pixel}}=\frac{1}{\sum_i\lambda_i(1/w_i)}.\]</div>
+                <p>深度使用同一组 \(\lambda_i\)。标准透视投影的 NDC 深度可写成
+                \(z_{\mathrm{ndc}}=A+B/w\)，因此 \(z_{\mathrm{ndc}}\) 也随 \(1/w\) 线性变化。
+                但当前 RenderTorch 保存的是 \(w\)，不是 NDC 深度。</p>
+                <p><strong>第四步：可见性判断。</strong> 新片元只有满足：</p>
+                <div class="formula">\[w_{\mathrm{pixel}} < \mathrm{depth}(x,y)\]</div>
+                <p>才写入颜色、深度和物体编号。等号不写入，可以保持已经可见的对象。</p>
+                <p><strong>第五步：为什么画家算法不可靠。</strong> 若两个三角形在屏幕空间相交，
+                它们的深度关系随像素改变，不存在一个全图通用绘制顺序。
+                即使当前例子能靠排序画对，循环三角形相交时也会失败。z-buffer 在每个像素局部决定胜负。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>逆深度与属性恢复</h2><p>三个顶点的 \(w=(1,2,4)\)，某像素重心坐标
+                \((\lambda_0,\lambda_1,\lambda_2)=(0.2,0.3,0.5)\)。先计算逆深度：</p>
+                <div class="formula">\[r=\frac{0.2}{1}+\frac{0.3}{2}+\frac{0.5}{4}=0.475,
+                \qquad w_{\mathrm{pixel}}=\frac{1}{0.475}\approx2.105.\]</div>
+                <p>若直接线性插值 \(w\)，会得到 \(0.2(1)+0.3(2)+0.5(4)=3.000\)，明显偏远。</p>
+                <p>再设顶点属性 \(q=(10,20,40)\)。透视正确的插值为：</p>
+                <div class="formula">\[\widetilde q=0.2\frac{10}{1}+0.3\frac{20}{2}+0.5\frac{40}{4}=10,
+                \qquad q_{\mathrm{pixel}}=\frac{10}{0.475}\approx21.053.\]</div>
+                <p>直接线性插值会得到 \(28\)。颜色和纹理坐标若使用错误插值，会出现明显的透视拉伸。</p>
+                <p>遮挡例子：同一像素上 A 的深度为 3，B 的深度为 5。
+                无论先提交 A 还是 B，z-buffer 最终都保留 A。若先画 B 再画 A，两者都写；
+                若先画 A 再画 B，B 的比较失败。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>属性插值后做深度测试</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>const inverseW = l0 / w0 + l1 / w1 + l2 / w2;
+if (!Number.isFinite(inverseW) || inverseW &lt;= 0) return;
+const pixelW = 1 / inverseW;
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>教学实现的性能瓶颈通常不是矩阵库，而是 Python 中逐条顺序约束循环。它能清楚表达算法，但不适合直接扩展到大规模生产网格。</p>
-<p>稳定性诊断应从时间步、刚度、柔度、阻尼和迭代次数入手。不要用钳制位置或忽略 NaN 掩盖问题，那会破坏动量与约束语义。</p>
-<div class="callout"><strong>测量原则：</strong>分别记录单步耗时、最大速度、相对约束误差和接触数。只报告一个“FPS”无法区分渲染成本与求解成本。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">相对约束误差 = max |L − L<sub>0</sub>| / L<sub>0</sub><br>体积误差 = |V − V<sub>0</sub>| / V<sub>0</sub><br>step_ms = elapsed / completed_steps</div>
-<p>这些指标回答不同问题：误差看正确性，速度看爆炸风险，耗时看瓶颈，接触数看碰撞是否真的发生。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>before = initial_positions.clone()
-run_fixed_number_of_steps()
-assert all_states_are_finite()
-measure_max_speed_and_relative_constraint_error()
-measure_elapsed_time_per_step()
-change_one_parameter_and_repeat()</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/xpbd.py"><span>physics/softbody/xpbd.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_physics_controller.py"><span>tests/test_physics_controller.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 270" role="img" aria-label="稳定性诊断流程">
-  <g class="svg-node"><rect x="30" y="95" width="130" height="65" rx="10"/><text x="95" y="133">出现异常</text>
-    <rect x="205" y="95" width="130" height="65" rx="10"/><text x="270" y="133">检查 finite</text>
-    <rect x="380" y="95" width="130" height="65" rx="10"/><text x="445" y="133">减小时间步</text>
-    <rect x="555" y="95" width="130" height="65" rx="10"/><text x="620" y="133">检查参数</text></g>
-  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)"><path d="M160 127 H205"/><path d="M335 127 H380"/><path d="M510 127 H555"/></g>
-  <path d="M620 160 V220 H95 V160" fill="none" stroke="var(--warm)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow1)"/><text x="245" y="247">一次只改一个变量，保留可重复测试</text>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>完整测试</dt><dd>88 项通过</dd></div><div class="metric"><dt>默认布料</dt><dd>约 0.59 ms/step（本机测量）</dd></div><div class="metric"><dt>XPBD / 软体</dt><dd>顺序循环成本更高，需单独测量</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>先检查是否 finite，再判断误差大小；NaN 时后续指标没有意义。</li><li>不要通过放大 clamp 隐藏位置爆炸，应回溯稳定时间步。</li><li>优化顺序求解前先保留参考输出，避免性能提升改变算法行为。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter10.html"><small>← 上一章</small>刚体与软体 Demo</a><a href="chapter12.html"><small>下一章 →</small>后续扩展方向</a></nav>
-    </article>
+const attr = (q0 * l0 / w0 + q1 * l1 / w1 + q2 * l2 / w2) / inverseW;
+if (pixelW &lt; framebuffer.depth[y, x]) {
+  framebuffer.depth[y, x] = pixelW;
+  framebuffer.color[y, x] = shade(attr);
+  framebuffer.objectIds[y, x] = objectId;
+}</code></pre></div>
+                <p><code>rasterize_triangle</code> 将 <code>clipped[:,3]</code> 作为三个顶点的 \(w\)，
+                批量计算逆深度，再取倒数。所有可见像素的写入都由同一个深度比较掩码控制。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>插值、缓存与共享边</h2><details><summary>问题 1：为什么 1/w 可以线性插值，而 w 不可以？</summary>
+                <p><strong>答案：</strong>透视映射使 \(1/w\) 成为屏幕空间线性量；\(w\) 是对该线性量取倒数得到的非线性量。</p></details>
+                <details><summary>问题 2：z-buffer 的初值为什么是正无穷？</summary>
+                <p><strong>答案：</strong>任何有限近深度都小于正无穷，第一个可见片元可以正常写入。</p></details>
+                <details><summary>问题 3：先画 A 再画 B，B 更远，会发生什么？</summary>
+                <p><strong>答案：</strong>B 的深度比较失败，已有 A 的颜色和深度保持不变。</p></details>
+                <details><summary>问题 4：深度正确能解决边缘重复覆盖吗？</summary>
+                <p><strong>答案：</strong>不能。共享边上的两个片元深度可能相同，需要 top-left 规则决定唯一归属。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>纹理滑动、遮挡跳变与深度反转</h2><ol class="debug-list"><li><strong>纹理随相机滑动：</strong>检查是否直接插值 UV，而没有使用 \(q/w\) 与 \(1/w\)。</li>
+                <li><strong>远处三角形突然消失：</strong>检查远平面裁剪、深度初始化和浮点精度。</li>
+                <li><strong>两个三角形随提交顺序闪烁：</strong>检查是否使用 z-buffer，而不是画家排序。</li>
+                <li><strong>近处变远处：</strong>统一深度约定。当前实现保存 \(w\)，越小越近，不能混入越大越近的 NDC 约定。</li>
+                <li><strong>共享边发亮：</strong>深度相等不能解决所有权，需要严格 top-left 规则或一致的保守覆盖策略。</li></ol>
+                <p>最小调试单元是 1 个像素：打印三个 \(\lambda\)、三个 \(w\)、逆深度、恢复深度和缓存旧值。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前遮挡与抗锯齿实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验并排展示直接插值与逆深度插值，
+                并允许交换 A/B 提交顺序，对照画家算法和 z-buffer 的最终像素。</p>
+                <p><span class="status-pill">现有 RenderTorch</span>
+                <code>renderer/rasterizer.py</code> 使用重心坐标插值 \(1/w\)，取倒数得到像素深度；
+                <code>renderer/framebuffer.py</code> 提供 RGBA 颜色、浮点深度和物体编号缓冲；
+                深度初始为 <code>np.inf</code>，写入条件为更小深度。</p>
+                <p><span class="status-pill">后续实现路线</span> 当前管线主要做逐面着色，没有完整属性插值管线。
+                背面剔除、严格 top-left 规则和 MSAA 尚未实现；增加它们时需要同时明确面绕序、覆盖契约和多样本解析。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：重心坐标、逆深度插值与深度测试</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span><small>现有实现：颜色、深度与物体编号缓冲</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：逐面投影、着色与光栅提交</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="occlusion-demo" data-demo="occlusion-demo"><h3>逆深度插值与 z-buffer 遮挡</h3><p>比较线性 w 与 1/w 插值，交换绘制顺序，观察画家算法和深度缓存的不同结果。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter10.html"><small>← 上一章</small>齐次裁剪与三角形光栅化</a><a href="chapter12.html"><small>下一章 →</small>光照模型与材质</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

@@ -3,85 +3,107 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="在相同网格、固定条件和碰撞体下观察稳定性、误差与计算成本。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>三种布料算法的比较 · RenderTorch 教学书</title>
+  <title>场景、模型文件、场景图与包围体</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter09.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html" aria-current="page"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html" aria-current="page"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 09 / 12</p>
-        <h1>三种布料算法的比较</h1>
-        <p class="lede">在相同网格、固定条件和碰撞体下观察稳定性、误差与计算成本。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>4</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 09 / 15 · 二、几何建模</p><h1>场景、模型文件、场景图与包围体</h1><p class="lede">用模型矩阵、场景图和包围体组织多物体场景，并建立粗粒度裁剪基础。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>把局部坐标通过父子变换送到世界坐标</li><li>解释 OBJ 索引、AABB 和视锥裁剪</li></ol><p><strong>先验知识：</strong>第 3 章的矩阵复合、第 5 章的网格表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">局部模型放进全局场景</div><div class="prose"><h2>场景图把变换组织成父子链</h2><p>一个角色的手臂不应把“角色已经走到哪里”写进每一个局部顶点。
+                更合理的做法是：模型保留局部坐标，父节点记录角色整体的平移和旋转，
+                子节点记录手臂相对肩部的运动。渲染时再沿父子链组合变换。</p>
+                <p>模型文件负责几何与属性，场景图负责实例化和层级关系，包围体负责快速排除。
+                三者解决不同问题：同一个网格可以被多个场景节点以不同变换重复使用；
+                包围体可以先用廉价计算排除明显不可见物体，再进行昂贵的三角形处理。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 300" role="img" aria-label="父子场景节点、局部点和世界坐标">
+                <defs><marker id="scene-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L8 3L0 6Z" fill="#62727a"/></marker></defs>
+                <rect x="245" y="25" width="150" height="58" rx="10" fill="#132832"/><text x="320" y="61" text-anchor="middle" fill="white">Parent · T</text>
+                <path d="M320 83V128H205V175" fill="none" stroke="#62727a" stroke-width="2" marker-end="url(#scene-arrow)"/>
+                <rect x="105" y="175" width="180" height="58" rx="10" fill="#087f83"/><text x="195" y="211" text-anchor="middle" fill="white">Child · R</text>
+                <path d="M285 204L460 204" stroke="#c66b35" stroke-width="2" marker-end="url(#scene-arrow)"/>
+                <rect x="470" y="168" width="140" height="72" rx="10" fill="#f2dfcf" stroke="#c66b35"/><text x="540" y="199" text-anchor="middle">p_local</text><text x="540" y="224" text-anchor="middle">→ p_world</text>
+                </svg><p><strong>图 9.1</strong>　世界变换由父节点与子节点矩阵复合得到；包围体也随实例变换。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>模型矩阵、场景图、OBJ 与包围体</h2><p>使用第 3 章的列向量约定，把局部点变到世界点的矩阵叫模型矩阵：</p>
+                <div class="formula">\[\mathbf p_{\mathrm{world}}=M_{\mathrm{model}}\mathbf p_{\mathrm{local}}.\]</div>
+                <p>若父变换为 \(M_{\mathrm{parent}}\)、子变换为 \(M_{\mathrm{child}}\)，则：</p>
+                <div class="formula">\[M_{\mathrm{model}}=M_{\mathrm{parent}}M_{\mathrm{child}}.\]</div>
+                <p>RenderTorch 当前采用行向量存储顶点，代码写为
+                <code>vertices @ transform</code>。行向量习惯下乘法顺序看起来相反，
+                即 <code>local @ child @ parent</code>；数学结果与上式相同。</p>
+                <p>OBJ 文件用 <code>v x y z</code> 保存位置，用 <code>f i/j/k ...</code> 保存面。
+                其中 <code>i</code> 是位置索引，<code>j</code>、<code>k</code> 可分别引用纹理坐标和法线；
+                索引从 1 开始，导入内部数组时要减 1。</p>
+                <p>轴对齐包围盒 AABB 由六个极值定义：</p>
+                <div class="formula">\[\mathrm{AABB}=[\min_x,\max_x]\times[\min_y,\max_y]\times[\min_z,\max_z].\]</div>
+                <p>包围球用中心 \(\mathbf c\) 和半径 \(r\) 表示，要求球包含物体的所有顶点：
+                \(r=\max_i\lVert\mathbf p_i-\mathbf c\rVert\)。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>父子变换、包围盒与粗粒度视锥判断</h2><p>父节点平移 \(\mathbf t=(2,0,0)\)，子节点绕 z 轴旋转 \(90^\circ\)。
+                局部点 \(\mathbf p=(1,0,0)\) 先旋转到 \((0,1,0)\)，再平移到 \((2,1,0)\)：</p>
+                <div class="formula">\[\mathbf p_{\mathrm{world}}=
+                T(2,0,0)R_z(90^\circ)\mathbf p=(2,1,0).\]</div>
+                <p>局部盒子旋转后通常不再轴对齐，因此必须在世界空间重新取所有变换顶点的坐标极值。
+                不能只平移原来的 AABB，否则会高估宽高；也不能只旋转中心和半径，除非使用有足够保守余量的包围球。</p>
+                <p>视锥可写成六个平面不等式 \(\mathbf n_k\cdot\mathbf x+d_k\ge0\)。
+                对包围球，令 \(s_k=\mathbf n_k\cdot\mathbf c+d_k\)：</p>
+                <div class="formula">\[\begin{aligned}
+                \exists k:\ s_k&lt;-r&\Rightarrow \text{球在视锥外},\\
+                \forall k:\ s_k\ge r&\Rightarrow \text{球完全在视锥内},\\
+                \text{其他情况}&\Rightarrow \text{可能相交}.
+                \end{aligned}\]</div>
+                <p>这是保守判断：可能相交就要继续处理三角形，可能相交不等于一定可见。
+                对 AABB，可用投影半径
+                \(\rho_k=|n_{k,x}|h_x+|n_{k,y}|h_y+|n_{k,z}|h_z\)
+                做类似判断，其中 \(h_x,h_y,h_z\) 是 AABB 半尺寸。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>旋转盒子后的世界 AABB</h2><p>取局部正方形盒子 \([0,1]\times[0,1]\)，四个角点为
+                \((0,0),(1,0),(1,1),(0,1)\)。先绕原点旋转 \(90^\circ\)：</p>
+                <div class="formula">\[R_z(90^\circ)(x,y)=(-y,x).\]</div>
+                <p>旋转后的角点为 \((0,0),(0,1),(-1,1),(-1,0)\)，范围是
+                \([-1,0]\times[0,1]\)。再施加父节点平移 \((2,0,0)\)，世界 AABB 为：</p>
+                <div class="formula">\[[1,2]\times[0,1].\]</div>
+                <p>如果误把“先旋转再平移”写成“先平移再旋转”，会得到不同位置。
+                场景图的意义正是让这类顺序显式可见，而不是把多个数字手工合并到模型文件里。</p>
+                <p>局部盒子中心是 \((0.5,0.5)\)，包围球半径
+                \(r=\sqrt{0.5^2+0.5^2}=\sqrt{0.5}\approx0.7071\)。
+                包围球比 AABB 更保守，但求交判断通常更便宜。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>从 OBJ 索引到场景节点</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>for line in obj_lines:
+    if line.startswith("v "):
+        vertices.append([float(value) for value in line.split()[1:]] + [1.0])
+    elif line.startswith("f "):
+        face = tuple(int(token.split("/")[0]) - 1 for token in line.split()[1:])
+        faces.append(face)
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>三种算法不是同一公式的三种写法。质点弹簧直接积分力，PBD 直接修正位置，XPBD 用乘子表达有限柔度。比较时应固定初始位置、时间步、重力、拓扑和显示模式。</p>
-<p>下面的交互 Demo 是浏览器中的简化二维类比，用于观察趋势，不是 Qt 求解器的逐像素复刻。桌面程序使用第 6–8 章链接的真实 Python 实现。</p>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">质量弹簧：更新力 → 更新速度 → 更新位置<br>PBD：预测位置 → 迭代投影 → 重建速度<br>XPBD：预测位置 → 带 λ 与 α 的投影 → 重建速度</div>
-<p>公平比较需要同时报告误差和耗时。更低的误差可能来自更多迭代，而不一定来自更好的算法。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for algorithm in [mass_spring, pbd, xpbd]:
-    使用相同 cloth_grid 与 colliders
-    运行相同步数
-    记录 finite、max_speed、constraint_error、step_ms
-    在 solid / wireframe / particles 三种视图下观察</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/physics_controller.py"><span>app/physics_controller.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_mass_spring.py"><span>tests/test_cloth_mass_spring.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_pbd.py"><span>tests/test_cloth_pbd.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/tests/test_cloth_xpbd.py"><span>tests/test_cloth_xpbd.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<div id="comparison-demo" class="comparison-demo">
-  <div class="demo-toolbar">
-    <button id="play-comparison" type="button">暂停</button>
-    <button id="reset-comparison" type="button">重置</button>
-    <label>迭代 <output id="iterations-output">8</output><input id="comparison-iterations" type="range" min="1" max="20" value="8"></label>
-    <label>柔度 <output id="compliance-output">1.0e-6</output><input id="comparison-compliance" type="range" min="-8" max="-3" step="0.5" value="-6"></label>
-  </div>
-  <div class="comparison-grid">
-    <figure><canvas data-comparison-canvas data-algorithm="mass_spring" width="320" height="280"></canvas><figcaption>质量弹簧 <output data-error>0.0000</output></figcaption></figure>
-    <figure><canvas data-comparison-canvas data-algorithm="pbd" width="320" height="280"></canvas><figcaption>PBD <output data-error>0.0000</output></figcaption></figure>
-    <figure><canvas data-comparison-canvas data-algorithm="xpbd" width="320" height="280"></canvas><figcaption>XPBD <output data-error>0.0000</output></figcaption></figure>
-  </div>
-  <p class="demo-caption">显示值为平均相对约束误差。拖动参数后重置，可重复比较相同初始状态。</p>
-</div>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>质点弹簧</dt><dd>受力直观；高刚度需小步长</dd></div><div class="metric"><dt>PBD</dt><dd>稳定易实现；stiffness 不够物理</dd></div><div class="metric"><dt>XPBD</dt><dd>柔度可解释；需要乘子状态</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>比较结果不可重复：确认每个算法从完全相同的初始状态开始。</li><li>把 Qt 参数直接搬进浏览器会得到不同数值：浏览器 Demo 故意简化了维度。</li><li>只比较截图不比较误差：增加线框视图并记录数值指标。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter08.html"><small>← 上一章</small>XPBD：柔度与拉格朗日乘子</a><a href="chapter10.html"><small>下一章 →</small>刚体与软体 Demo</a></nav>
-    </article>
+world_matrix = parent_matrix @ child_matrix
+world_vertices = local_vertices @ world_matrix.T
+minimum = world_vertices.min(axis=0)
+maximum = world_vertices.max(axis=0)</code></pre></div>
+                <p>当前 OBJ 导入只读取位置和面，不解析法线或 UV。场景层也没有通用父子节点树，
+                因此本章实验展示的是后续场景图设计，而不是对现有功能的重复。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>坐标空间与包围体</h2><details><summary>问题 1：父平移和子旋转的先后顺序为什么重要？</summary>
+                <p><strong>答案：</strong>旋转和平移通常不交换。矩阵乘法顺序决定局部点先经历哪一步。</p></details>
+                <details><summary>问题 2：模型旋转后，原来的 AABB 一定仍是最小 AABB 吗？</summary>
+                <p><strong>答案：</strong>不一定。应重新计算变换后所有顶点的坐标极值。</p></details>
+                <details><summary>问题 3：包围球与视锥“可能相交”代表物体一定可见吗？</summary>
+                <p><strong>答案：</strong>不代表。包围体是保守代理，仍可能被其他物体遮挡或完全没有三角形覆盖像素。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>场景坐标与可见性问题</h2><ol class="debug-list"><li><strong>物体位置偏移：</strong>先打印局部点、模型矩阵和世界点，逐级检查父子顺序。</li>
+                <li><strong>OBJ 导入崩溃：</strong>检查 1-based 索引、负索引和 <code>v/vt/vn</code> 三种索引语义。</li>
+                <li><strong>包围体漏掉物体：</strong>确认包围体由变换后的顶点重新计算，且动画后更新。</li>
+                <li><strong>该裁剪的没裁剪：</strong>检查平面法线与点积符号是否采用同一内外约定。</li>
+                <li><strong>该显示的被误剔除：</strong>调试时先禁用粗粒度视锥判断，确认是包围体还是三角形管线的问题。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>场景图概念实验与当前项目边界</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验显示父平移、子旋转、局部点到世界点的映射，
+                并切换 AABB 与包围球进行二维视锥粗检。它是场景图概念演示，不是三维模型编辑器。</p>
+                <p><span class="status-pill">现有 RenderTorch</span>
+                <code>core/scene.py</code> 为每个对象保存一个模型矩阵；
+                <code>app/controller.py</code> 把基本网格加入场景；
+                <code>solid/custom.py</code> 可读取 OBJ 的位置和面；
+                <code>renderer/pipeline.py</code> 使用 <code>world_vertices()</code> 得到世界坐标。</p>
+                <p><span class="status-pill">后续实现路线</span> 当前场景没有通用父子节点树、AABB 或视锥粗检。
+                下一步可以增加场景节点父子关系、变换缓存和世界空间包围体，再考虑对象级剔除。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：SceneObject 模型矩阵与世界顶点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/controller.py"><span>app/controller.py</span><small>现有实现：把网格实例加入场景</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/solid/custom.py"><span>solid/custom.py</span><small>现有实现：读取 OBJ 位置与面</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：使用世界顶点进入投影管线</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="scene-demo" data-demo="scene-demo"><h3>父子变换与世界空间包围体</h3><p>调整父平移和子旋转，切换 AABB/包围球，查看局部点、世界点和视锥粗检结果。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter08.html"><small>← 上一章</small>参数曲面与细分</a><a href="chapter10.html"><small>下一章 →</small>齐次裁剪与三角形光栅化</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

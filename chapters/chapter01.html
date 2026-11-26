@@ -3,85 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="先确定学习目标与边界，再决定需要自己实现什么。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>为什么从零搭建 3D 与物理教学项目 · RenderTorch 教学书</title>
+  <title>像素、颜色与图像</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter01.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html" aria-current="page"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html" aria-current="page"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 01 / 12</p>
-        <h1>为什么从零搭建 3D 与物理教学项目</h1>
-        <p class="lede">先确定学习目标与边界，再决定需要自己实现什么。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>2</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 01 / 15 · 一、像素与数学</p><h1>像素、颜色与图像</h1><p class="lede">从像素索引、坐标和颜色通道出发，建立数字图像最基本的表示。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释像素、分辨率和图像坐标之间的关系</li><li>读取并修改一个像素的 RGBA 值</li></ol><p><strong>先验知识：</strong>基础 Python 算术。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">从屏幕上的小方格开始</div><div class="prose"><h2>图像是有地址的颜色样本</h2><p>把屏幕放大到足够大，会看到一个由小方格组成的阵列。每个方格叫作一个
+<strong>像素</strong>；计算机不直接保存“红色看起来像什么”，而是保存一组可重复计算的数值。
+渲染器的全部工作，最终都要落实到：哪个像素、写入什么颜色、是否更新深度。</p>
+<p>本章暂时不讨论三维物体。先假设图像已经是一张表，并建立三个层次的坐标：用于遍历的
+整数索引 \((x,y)\)、用于采样的归一化坐标 \((u,v)\)，以及用于数值计算的
+通道值。混淆这三者，是图像翻转、越界和颜色错误最常见的根源。</p>
+<div class="visual-card"><svg viewBox="0 0 640 250" role="img" aria-label="八列六行的像素网格，突出第五列第三行">
+<defs><pattern id="pixel-grid" width="64" height="32" patternUnits="userSpaceOnUse"><rect width="64" height="32" fill="#f6f3eb" stroke="#cbd5d1"/></pattern></defs>
+<rect x="24" y="24" width="512" height="192" rx="10" fill="url(#pixel-grid)"/>
+<rect x="280" y="88" width="64" height="32" rx="5" fill="#087f83"/>
+<text x="312" y="110" text-anchor="middle" fill="white" font-size="14">(5, 2)</text>
+<path d="M312 122v70" stroke="#c66b35" stroke-width="2"/><text x="326" y="214" fill="#854721" font-size="14">v = 2 / (H - 1)</text>
+<path d="M344 104h110" stroke="#c66b35" stroke-width="2"/><text x="466" y="98" fill="#854721" font-size="14">u = 5 / 7</text>
+</svg><p><strong>图 1.1</strong>　坐标原点位于左上角，x 向右，y 向下；这是图像缓冲区常用的约定。</p></div>
+<div class="callout"><strong>约定先于公式。</strong> 本章采用左上角原点、x 向右、y 向下。
+后面相机视口公式会把 OpenGL 风格的左下角 NDC 转换成这套屏幕坐标。</div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>分辨率、坐标和 RGBA</h2><p>设图像宽度为 <code>W</code>、高度为 <code>H</code>，单位都是像素。
+有效像素索引是 \(x\in\{0,\ldots,W-1\}\)、\(y\in\{0,\ldots,H-1\}\)。
+因此尺寸为 \(W\times H\) 的图像一共有 \(WH\) 个像素，而不是坐标中的
+<code>W+1</code> 或 <code>H+1</code> 个位置。</p>
+<div class="formula">\[\begin{aligned}
+u &= \frac{x}{W-1}, & v &= \frac{y}{H-1}, \\
+0 &\le u \le 1, & 0 &\le v \le 1.
+\end{aligned}\]</div>
+<p><code>u</code> 和 <code>v</code> 把像素中心映射到两端都包含的连续区间。
+当纹理真正采样时，也可以采用像素中心约定 \((x+0.5)/W\)；两者解决的是不同问题。
+本章使用 \(W-1\)，是为了让第一个和最后一个像素精确落在 0 与 1。</p>
+<p>一个彩色像素通常保存红、绿、蓝和透明度四个通道，记作 RGBA。
+通道有两种常见表示：</p>
+<ul><li><strong>字节表示：</strong>整数 0–255，适合帧缓冲区和 PNG 文件；</li>
+<li><strong>浮点表示：</strong>约 0–1，适合光照、纹理过滤和色调映射。</li></ul>
+<p>通道数值描述的是颜色编码或强度，并不自动等同于人眼感受到的亮度。
+Gamma 与线性光的关系将在第 14 章展开。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从二维索引到一维内存地址</h2><p>假设像素按行优先存储，每一行连续排列，RGBA 四个通道也紧密相连。
+要找到第 <code>y</code> 行第 <code>x</code> 列，需要先跳过前面的 <code>y</code> 行，
+再跳过当前行的 <code>x</code> 个像素。于是：</p>
+<div class="formula">\[\begin{aligned}
+\mathrm{pixel\_index} &= yW+x, \\
+\mathrm{byte\_offset} &= 4(yW+x).
+\end{aligned}\]</div>
+<p>地址 <code>byte_offset</code> 指向红色通道；随后三个字节依次是绿、蓝、透明度。
+如果图像还带有行填充，则每行步长可能大于 <code>4W</code>，这时应使用实际的 stride，
+而不能把公式中的 <code>W</code> 当作 stride。</p>
+<p>归一化坐标则提供另一种访问方式。给定连续的 <code>(u,v)</code>，在最近邻采样下先取整：</p>
+<div class="formula">\[x=\operatorname{round}\!\bigl(u(W-1)\bigr),\qquad
+y=\operatorname{round}\!\bigl(v(H-1)\bigr).\]</div>
+<p>取整之后仍要检查范围。边界外的 <code>u,v</code> 可以采用截断、重复边缘像素或镜像重复，
+但这些属于纹理寻址策略，不应让它们悄悄造成数组越界。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>定位 8 × 6 图像中的一个像素</h2><p>取 <code>W=8</code>、<code>H=6</code>，检查 <code>(x,y)=(5,2)</code>。
+它的归一化坐标是：</p>
+<div class="formula">\[\begin{aligned}
+u &= \frac{5}{8-1}=\frac{5}{7}\approx 0.714286, \\
+v &= \frac{2}{6-1}=\frac{2}{5}=0.4.
+\end{aligned}\]</div>
+<p>该像素之前有 2 个完整行，每行 8 个像素，因此像素索引为：</p>
+<div class="formula">\[\mathrm{index}=2\cdot8+5=21,\qquad
+\mathrm{byte\_offset}=21\cdot4=84.\]</div>
+<p>也就是说，字节 84–87 存储这个像素的 RGBA。若值为
+<code>(12, 200, 64, 255)</code>，转换成浮点通道就是
+<code>(0.0471, 0.7843, 0.2510, 1)</code>。透明度 255 表示完全不透明。</p>
+<div class="callout"><strong>手算检查：</strong> <code>u</code> 从 0 到 1 时，最近邻索引应从 0 到 7；
+<code>v</code> 从 0 到 1 时，索引应从 0 到 5。使用 <code>W</code> 而不是 \(W-1\)
+会让端点无法到达最后一个像素。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>生成一张可验证的测试图</h2><p>下面的程序让灰度随 x 增加，并让透明度始终不透明。
+它适合作为帧缓冲区、Canvas 上传或图像保存函数的第一个测试。</p>
+<div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+<pre><code>def make_image(width, height):
+    image = bytearray(width * height * 4)
+    for y in range(height):
+        for x in range(width):
+            gray = round(255 * x / (width - 1))
+            offset = (y * width + x) * 4
+            image[offset:offset + 4] = bytes((gray, gray, gray, 255))
+    return image
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>物理引擎通常把渲染、场景、碰撞和求解器藏在黑盒里。对于教学，这恰好隐藏了最值得观察的部分：一个粒子如何前进、一条约束如何把位置拉回、一个像素为什么被更近的三角形覆盖。</p>
-<p>RenderTorch 把这条链路拆开。你既能修改 PyTorch 中的数值计算，也能在 Qt 视口里立即看到结果。项目不追求商业引擎的完整性，而是追求每一步都可读、可运行、可验证。</p>
-<div class="callout"><strong>生活类比：</strong>这像先拆开一台机械钟理解齿轮传动，再决定是否重新组装。拆开的目的不是否定钟表，而是掌握因果关系。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">学习闭环 = 直觉 → 最小实现 → 数值测试 → 可视化 → 误差解释</div>
-<p>这里没有新的物理公式。重要的是验收顺序：先定义可观察的不变量，例如固定粒子不动、近处表面遮挡远处表面，再写实现。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>for milestone in [最小闭环, 公共物理, 三种布料, 刚体与软体, 教学书]:
-    阅读对应参考资料与现有代码
-    写一个能失败的验收测试
-    实现最小但完整的纵向切片
-    运行测试并观察真实画面
-    记录指标、限制和下一步</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/docs/development-roadmap.md"><span>docs/development-roadmap.md</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/docs/references.md"><span>docs/references.md</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 260" role="img" aria-label="RenderTorch 学习闭环">
-  <defs><marker id="arrow1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
-  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#arrow1)">
-    <path d="M120 80 H250"/><path d="M330 80 H460"/><path d="M540 80 H620"/>
-    <path d="M620 110 V190"/><path d="M620 190 H120"/><path d="M120 190 V115"/>
-  </g>
-  <g class="svg-node"><rect x="25" y="48" width="95" height="64" rx="12"/><text x="72" y="86">问题直觉</text>
-    <rect x="250" y="48" width="80" height="64" rx="12"/><text x="290" y="86">实现</text>
-    <rect x="460" y="48" width="80" height="64" rx="12"/><text x="500" y="86">测试</text>
-    <rect x="620" y="48" width="80" height="64" rx="12"/><text x="660" y="86">画面</text>
-    <rect x="350" y="158" width="110" height="64" rx="12"/><text x="405" y="196">解释指标</text></g>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>可运行闭环</dt><dd>main_qt.py 启动后显示场景</dd></div><div class="metric"><dt>核心可测</dt><dd>core / compute / renderer 不依赖 Qt</dd></div><div class="metric"><dt>当前基线</dt><dd>88 项自动化测试通过</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>如果不知道先做什么，回到路线图的当前里程碑，只补一条完整链路。</li><li>如果测试通过但画面不对，检查相机方向、矩阵约定和屏幕 Y 轴翻转。</li><li>如果引入新库后难以解释，先问它是否解决了当前验收中的具体问题。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="../index.html"><small>← 返回</small>书籍首页</a><a href="chapter02.html"><small>下一章 →</small>总体架构与模块边界</a></nav>
-    </article>
+pixel = (5, 2)
+offset = (pixel[1] * 8 + pixel[0]) * 4
+rgba = tuple(image[offset:offset + 4])</code></pre></div>
+<p>真实项目中，帧缓冲区通常直接分配 NumPy 数组；浏览器实验则用
+<code>ImageData.data</code> 写入字节，再用 <code>putImageData</code> 显示。
+两种实现的索引公式完全相同。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>确认坐标与地址没有脱节</h2><details><summary>问题 1：4 × 3 图像中，(0,2) 的像素索引是多少？</summary>
+<p><strong>答案：8。</strong> 前面有两行，每行 4 个像素，所以 <code>2×4+0=8</code>。</p></details>
+<details><summary>问题 2：为什么 x 最大只能是 W−1，而不是 W？</summary>
+<p><strong>答案：</strong>索引从 0 开始计数，W 个像素的最后一个索引是 W−1。</p></details>
+<details><summary>问题 3：RGBA=(255,0,0,0) 一定不可见吗？</summary>
+<p><strong>答案：</strong>不透明度和最终合成规则共同决定可见性。Alpha 为 0 通常表示完全透明，
+但若混合或保存方式不正确，也可能出现误写；不能只凭一个通道推断最终显示。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>图像问题的排查顺序</h2><ol class="debug-list"><li><strong>先检查范围：</strong>是否允许 x=W 或 y=H？最后一个有效索引应为 W−1、H−1。</li>
+<li><strong>再检查原点：</strong>图像坐标向下，NDC 通常向上；y 翻转常表现为整张图倒置。</li>
+<li><strong>检查通道：</strong>RGBA 是否误按 RGB 三个字节步进？透明通道是否始终为 0？</li>
+<li><strong>检查编码：</strong>写入 0–1 的浮点到字节数组会接近黑色；写入 0–255 到归一化缓冲区会饱和。</li>
+<li><strong>最后检查 stride：</strong>外部图像可能带行对齐，不应假定一行恰好是 4W 字节。</li></ol>
+<p>最有效的调试图像是单像素变化、水平灰阶和四角标记。它们能把坐标、寻址和翻转错误直接显示出来。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>概念实验与当前 RenderTorch 实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验把图像放大为可点击的像素网格，
+允许改变通道值并实时计算归一化坐标与字节地址。它不依赖 WebGL。</p>
+<p><span class="status-pill">现有 RenderTorch</span>
+<code>renderer/framebuffer.py</code> 已用 <code>numpy.uint8</code> 存储 RGBA 颜色缓冲区，
+并用独立数组保存深度和物体编号。该实现与本章的行优先地址模型一致。</p>
+<p><span class="status-pill">后续实现路线</span> 可在真实渲染循环中加入缩放显示、
+像素拾取和颜色编码转换测试；这些扩展不应改变帧缓冲区的基本索引契约。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span><small>现有实现：RGBA 与深度缓冲区</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="pixel-demo" data-demo="pixel-demo"><h3>像素检查器：索引、坐标与 RGBA</h3><p>选择像素并改变通道，观察索引、u/v、字节偏移与图像结果。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><span></span><a href="chapter02.html"><small>下一章 →</small>三维空间、向量、点与方向</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>

@@ -3,82 +3,116 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="用半隐式欧拉推进状态，用子步和累加器保持时间一致。">
+  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <title>物理模拟基础：粒子、时间步和积分 · RenderTorch 教学书</title>
+  <title>几何图元与网格表示</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
   <script src="../assets/book.js" defer></script>
-</head>
+<script src="../assets/demos/chapter05.js" defer></script></head>
 <body>
   <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 教学书</span></a>
-    <span class="header-meta">PYTORCH × SOFTWARE RENDERING × PHYSICS</span>
-    <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button>
-  </header>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a><span class="header-meta">PIXELS · GEOMETRY · RENDERING</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
   <div class="layout">
-    <aside class="sidebar" id="sidebar" data-sidebar data-open="false">
-      <p class="sidebar-title">全书目录</p>
-      <ol class="toc">
-        <li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li>
-        <li><a href="../chapters/chapter01.html"><span class="number">01</span><span>为什么从零搭建 3D 与物理教学项目</span></a></li>
-<li><a href="../chapters/chapter02.html"><span class="number">02</span><span>总体架构与模块边界</span></a></li>
-<li><a href="../chapters/chapter03.html"><span class="number">03</span><span>最小闭环：相机、投影和 FrameBuffer</span></a></li>
-<li><a href="../chapters/chapter04.html"><span class="number">04</span><span>软件光栅化与 Qt 图像显示</span></a></li>
-<li><a href="../chapters/chapter05.html" aria-current="page"><span class="number">05</span><span>物理模拟基础：粒子、时间步和积分</span></a></li>
-<li><a href="../chapters/chapter06.html"><span class="number">06</span><span>质点弹簧布料模型</span></a></li>
-<li><a href="../chapters/chapter07.html"><span class="number">07</span><span>PBD：位置约束与迭代求解</span></a></li>
-<li><a href="../chapters/chapter08.html"><span class="number">08</span><span>XPBD：柔度与拉格朗日乘子</span></a></li>
-<li><a href="../chapters/chapter09.html"><span class="number">09</span><span>三种布料算法的比较</span></a></li>
-<li><a href="../chapters/chapter10.html"><span class="number">10</span><span>刚体与软体 Demo</span></a></li>
-<li><a href="../chapters/chapter11.html"><span class="number">11</span><span>性能、稳定性与局限性</span></a></li>
-<li><a href="../chapters/chapter12.html"><span class="number">12</span><span>后续扩展方向</span></a></li>
-      </ol>
-      <p class="sidebar-note">源码分支：<code>feat/m1-qt-minimal-loop</code><br>内容与当前 RenderTorch 教学实现对应。</p>
-    </aside>
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html" aria-current="page"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-    <article class="content">
-      <header>
-        <p class="eyebrow">Chapter 05 / 12</p>
-        <h1>物理模拟基础：粒子、时间步和积分</h1>
-        <p class="lede">用半隐式欧拉推进状态，用子步和累加器保持时间一致。</p>
-        <div class="meta-row"><span class="pill">阅读约 8 分钟</span><span class="pill"><strong>3</strong> 个源码入口</span><span class="pill">对应真实实现</span></div>
-      </header>
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 05 / 15 · 二、几何建模</p><h1>几何图元与网格表示</h1><p class="lede">用点、线、三角形和索引网格组织三维几何，并比较不同三角化方式。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明索引网格为什么能复用顶点</li><li>比较三角形扇、三角形带和显式索引</li></ol><p><strong>先验知识：</strong>第 2 章的点和向量、基础数组概念。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">从三个顶点开始</div><div class="prose"><h2>网格是对几何的共享与连接</h2><p>一个点只有位置，一条线段连接两个点，一个三角形由三个顶点围成。
+                渲染器偏爱三角形，因为三个顶点总能确定一个平面，而且边函数、重心坐标和裁剪算法都很成熟。
+                但场景不会只有少数三角形：球、角色和地形通常包含成千上万个面。</p>
+                <p>如果每个三角形都重复保存三个坐标，相邻三角形之间的公共顶点就会存很多遍。
+                <strong>索引网格</strong>把顶点位置集中保存一次，再用整数索引说明每个面引用了哪些顶点。
+                索引不是另一套坐标，而是指向顶点数组的下标。</p>
+                <div class="visual-card"><svg viewBox="0 0 640 280" role="img" aria-label="四边形分别用三角形扇和三角形带连接">
+                <defs><marker id="mesh-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0 0L7 3L0 6Z" fill="#62727a"/></marker></defs>
+                <g transform="translate(30 25)"><path d="M50 180L230 180L230 40L50 40Z" fill="#d8eeea" stroke="#087f83" stroke-width="3"/>
+                <path d="M50 40L230 180" stroke="#c66b35" stroke-width="3"/><path d="M50 180A253 253 0 0 0 230 40" fill="none" stroke="#62727a" stroke-dasharray="5 5" marker-end="url(#mesh-arrow)"/>
+                <g fill="#17252d" font-size="15"><text x="30" y="205">p0</text><text x="240" y="205">p1</text><text x="240" y="35">p2</text><text x="25" y="35">p3</text></g>
+                <text x="88" y="225" fill="#854721">共享对角线</text></g>
+                <g transform="translate(355 25)"><path d="M40 180L220 180L220 40L40 40Z" fill="#f2dfcf" stroke="#c66b35" stroke-width="3"/>
+                <path d="M40 180L220 40" stroke="#087f83" stroke-width="3"/><g fill="#17252d" font-size="15"><text x="20" y="205">v0</text><text x="230" y="205">v1</text><text x="230" y="35">v3</text><text x="20" y="35">v2</text></g>
+                <text x="60" y="225" fill="#854721">沿条带依次连接</text></g></svg>
+                <p><strong>图 5.1</strong>　左侧是扇形三角化；右侧把四边形顶点按条带顺序重新排列。
+                两者几何相同，但描述三角形的索引模式不同。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>顶点、面、边与索引缓冲</h2><p>用 \(\mathbf p_i=(x_i,y_i,z_i)\) 表示第 \(i\) 个顶点。
+                一个三角形面保存三个整数，例如 \(f=(i_0,i_1,i_2)\)。
+                边通常按无序对 \(\{i,j\}\) 记录，因此共享边不因端点顺序相反而被当成两条边。</p>
+                <div class="formula">\[\begin{aligned}
+                \text{vertices}&=[\mathbf p_0,\mathbf p_1,\ldots,\mathbf p_{V-1}],\\
+                \text{indices}&=[i_0,i_1,i_2,\ldots],\\
+                f_k&=(i_{3k},i_{3k+1},i_{3k+2}).
+                \end{aligned}\]</div>
+                <p>对四边形 \(\mathbf p_0=(0,0)\)、\(\mathbf p_1=(1,0)\)、
+                \(\mathbf p_2=(1,1)\)、\(\mathbf p_3=(0,1)\)，扇形三角化得到：</p>
+                <div class="formula">\[f_0=(0,1,2),\qquad f_1=(0,2,3).\]</div>
+                <p>两个面共享边 \(\{0,2\}\)。如果改成无索引的三角形汤，就要保存
+                \(\mathbf p_0,\mathbf p_1,\mathbf p_2,\mathbf p_0,\mathbf p_2,\mathbf p_3\)
+                六个顶点角点；索引网格只保存四个独立顶点。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>三角形扇、三角形带与索引复用</h2><p>三角形扇固定一个锚点。给定 \(m+1\) 个顶点，它生成 \(m-1\) 个三角形：</p>
+                <div class="formula">\[f_k=(0,k+1,k+2),\qquad k=0,\ldots,m-2.\]</div>
+                <p>三角形带沿一条折线前进，每新增一个顶点就与上一对相邻顶点组成新三角形。
+                若条带顶点依次为 \(\mathbf v_0,\mathbf v_1,\ldots,\mathbf v_m\)，则：</p>
+                <div class="formula">\[T_k=\begin{cases}
+                (\mathbf v_0,\mathbf v_1,\mathbf v_2),&k=0,\\
+                (\mathbf v_{k-1},\mathbf v_k,\mathbf v_{k+1}),&k\ge1,
+                \end{cases}\]</div>
+                <p>奇偶三角形的绕序可能需要交替，才能保持连续朝外；这只是索引排列问题，不改变几何形状。
+                本章的四边形条带顺序是 \(\mathbf p_0,\mathbf p_1,\mathbf p_3,\mathbf p_2\)，
+                两个三角形是 \((0,1,2)\) 与 \((2,1,3)\)，其中索引仍指向原来的四个顶点。</p>
+                <p>索引节省的不只是内存，更是重复计算。考虑 \(m\times n\) 个四边形的规则网格，
+                索引网格的顶点数和三角形数分别为：</p>
+                <div class="formula">\[\begin{aligned}
+                V_{\text{indexed}}&=(m+1)(n+1),\\
+                F&=2mn,\\
+                V_{\text{soup}}&=6mn.
+                \end{aligned}\]</div>
+                <p>当 \(m=n=2\) 时，索引网格只需变换 9 个顶点，三角形汤却要处理 24 个重复角点。
+                索引缓冲仍有 \(6mn\) 个整数，因此它不是“零成本”，而是把顶点变换、内存和缓存成本从面数中分离出来。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个四边形的三种连接方式</h2><p>同一个四边形的独立顶点始终是 4 个。三角形扇需要 2 个面描述，
+                条带需要 2 个面描述，显式索引数组需要 6 个整数。它们的三角形—顶点引用总数都是
+                \(2\times3=6\)：</p>
+                <div class="formula">\[\begin{array}{c|c|c|c}
+                \text{方式}&\text{顶点记录}&\text{面/条带指令}&\text{共享边}\\
+                \hline
+                \text{fan}&4&2&1\\
+                \text{strip}&4&2&1\\
+                \text{indexed}&4&6\text{ 个索引}&1
+                \end{array}\]</div>
+                <p>不要把“顶点数 4”与“索引项数 6”混为一谈。GPU 读取每个面时仍会取出三个索引，
+                只是这三个索引可能指向同一个缓存中的顶点记录。</p>
+                <div class="callout"><strong>检查绕序：</strong>四边形的顶点若按矩形边界排列为
+                \((0,1,2,3)\)，则两个三角形都应保持一致的逆时针方向；否则背面剔除会得到裂缝。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>用共享索引构造四边形网格</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <pre><code>vertices = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+                faces = [(0, 1, 2), (0, 2, 3)]
 
-      <section class="section" id="intuition"><div class="section-label">01 · 直觉</div><div class="prose"><h2>先建立可观察的因果</h2>
-<p>一个动态粒子由位置、速度和逆质量描述。逆质量为 0 的粒子被固定；其余粒子接受重力、阻尼、碰撞与约束产生的速度变化。</p>
-<p>固定时间步让模拟不依赖帧率。累加器保存“还没模拟完的真实时间”，每次取出一个 <code>h</code>；渲染帧可以快也可以慢，但单个物理步的长度保持一致。</p>
-<div class="callout"><strong>为什么先更新速度：</strong>半隐式欧拉使用更新后的速度计算新位置，比显式欧拉更早看到重力影响，对简单摆和弹簧通常更稳定。</div>
-</div></section>
-      <section class="section" id="formula"><div class="section-label">02 · 公式</div><div class="prose"><h2>用数学压缩核心关系</h2>
-<div class="formula">v ← v + (g + F / m) h<br>x ← x + v h<br>h = fixed_dt / substeps</div>
-<p>阻尼实现为 <code>v ← v · exp(−c h)</code>。指数形式在较大时间步下仍保持非负衰减。</p>
-</div></section>
-      <section class="section" id="pseudocode"><div class="section-label">03 · 伪代码</div><div class="prose"><h2>把公式变成执行顺序</h2></div><div class="code-card"><div class="code-toolbar"><span>PSEUDOCODE</span><button class="copy-button" type="button" data-copy>复制代码</button></div><pre><code>accumulator += min(frame_dt, 0.25)
-while accumulator &gt;= fixed_dt:
-    accumulator -= fixed_dt
-    for substep in range(substeps):
-        h = fixed_dt / substeps
-        apply_gravity_and_damping(h)
-        integrate_positions(h)
-        solve_constraints(h)
-        collide(h)</code></pre></div></section>
-      <section class="section" id="source"><div class="section-label">04 · 源码</div><div class="prose"><h2>阅读当前项目的真实实现</h2><p>链接固定到本书对应的源码分支。建议先看公开接口，再追踪一个完整时间步。</p></div><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/state.py"><span>physics/common/state.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/colliders.py"><span>physics/common/colliders.py</span>↗</a></div></section>
-      <section class="section" id="visual"><div class="section-label">05 · 图示 / 交互</div><div class="prose"><h2>让状态变化看得见</h2></div><div class="visual-card">
-<svg viewBox="0 0 720 240" role="img" aria-label="固定时间步累加器">
-  <rect x="45" y="35" width="630" height="75" rx="12" class="svg-grid"/>
-  <g stroke="currentColor" stroke-width="2"><path d="M85 72 H630"/><path d="M150 55 V90"/><path d="M255 55 V90"/><path d="M360 55 V90"/><path d="M465 55 V90"/><path d="M570 55 V90"/></g>
-  <g fill="var(--accent)"><rect x="85" y="63" width="65" height="18" rx="5"/><rect x="255" y="63" width="105" height="18" rx="5"/><rect x="465" y="63" width="105" height="18" rx="5"/></g>
-  <text x="82" y="155">每格 = 1/120 s；渲染帧只需把时间倒入累加器</text><text x="82" y="190">单步、暂停和重置共用同一条 _substep 路径</text>
-</svg>
-</div></section>
-      <section class="section" id="metrics"><div class="section-label">06 · 参数与指标</div><div class="prose"><h2>用数字验证直觉</h2></div><dl class="metric-grid"><div class="metric"><dt>固定步长</dt><dd>1/120 s</dd></div><div class="metric"><dt>子步</dt><dd>2</dd></div><div class="metric"><dt>帧时间上限</dt><dd>0.25 s，防止卡顿后追帧爆炸</dd></div></dl></section>
-      <section class="section" id="debugging"><div class="section-label">07 · 调试</div><div class="prose"><h2>常见问题与排查顺序</h2><ol class="debug-list"><li>不同帧率结果差异大：检查是否直接用 frame_dt 积分。</li><li>重置后第一步不一致：检查初始状态是否被原地修改。</li><li>固定粒子漂移：确认 inverse_mass 为 0，且碰撞投影遵守权重。</li></ol></div></section>
-      <nav class="page-nav" aria-label="章节导航"><a href="chapter04.html"><small>← 上一章</small>软件光栅化与 Qt 图像显示</a><a href="chapter06.html"><small>下一章 →</small>质点弹簧布料模型</a></nav>
-    </article>
+                # 条带模式只改变顶点进入条带的顺序：
+                strip_order = [0, 1, 3, 2]
+                strip_triangles = [(0, 1, 2), (2, 1, 3)]
+
+                edges = set()
+                for a, b, c in faces:
+                    edges.update({tuple(sorted((a, b))), tuple(sorted((b, c))), tuple(sorted((c, a)))})</code></pre></div>
+                <p>RenderTorch 的 <code>MeshResource</code> 已经采用“顶点数组 + 面索引元组”的组织方式。
+                当前 <code>faces</code> 允许三边以上的多边形，因此第 10 章还会看到裁剪后的多边形如何重新扇形成三角形。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>确认你理解的是连接关系，而不只是坐标</h2><details><summary>问题 1：两个三角形共享三个顶点，一定共享几何位置吗？</summary>
+                <p><strong>答案：</strong>不一定。无索引存储中，数值相同的坐标也可能属于不同顶点记录。
+                是否共享取决于索引和拓扑合并策略。</p></details>
+                <details><summary>问题 2：一个四边形三角化后有几个索引项？</summary>
+                <p><strong>答案：</strong>显式索引方式有 6 个；扇形或条带 API 可以用 4 个顶点和 2 个指令隐式描述。</p></details>
+                <details><summary>问题 3：为什么规则网格的三角形汤顶点数是 6mn？</summary>
+                <p><strong>答案：</strong>共有 \(2mn\) 个三角形，每个三角形重复保存 3 个角点。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>网格错误的定位清单</h2><ol class="debug-list"><li><strong>索引越界：</strong>检查索引是否从 1 开始。OBJ 的索引从 1 开始，内部数组通常从 0 开始。</li>
+                <li><strong>三角形反向：</strong>交换一个面的第二、第三个索引，观察法线是否翻转。</li>
+                <li><strong>共享边重复：</strong>用无序对建立边集合，不要依赖字符串或端点顺序。</li>
+                <li><strong>重复顶点未合并：</strong>检查位置、法线、UV 是否本应共享；纹理接缝处有时反而必须拆顶点。</li>
+                <li><strong>条带奇偶错误：</strong>检查每加入一个顶点后的绕序，不要把世界坐标随手一起重排。</li></ol>
+                <p>最小调试网格应当是 1 个三角形、1 个四边形和 1 个四面体。它们分别能暴露基础索引、面拆分为三角形和闭合拓扑问题。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>浏览器网格实验与 RenderTorch 数据结构</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验在同一个四边形上切换扇形、条带和显式索引，
+                高亮共享边并统计顶点记录与索引项。它是二维拓扑演示，不是完整 OBJ 查看器。</p>
+                <p><span class="status-pill">现有 RenderTorch</span>
+                <code>core/scene.py</code> 的 <code>MeshResource</code> 保存顶点和面索引；
+                <code>core/primitives.py</code> 用共享顶点构造立方体、平面和球；
+                <code>renderer/pipeline.py</code> 遍历面索引并送入裁剪与光栅化。</p>
+                <p><span class="status-pill">后续实现路线</span> 可为网格添加边邻接表、退化三角形检查和属性级顶点拆分，
+                但这些都应建立在明确的索引契约之上。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：MeshResource 顶点与面索引</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：共享顶点构造基本网格</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：按面索引遍历三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="mesh-demo" data-demo="mesh-demo"><h3>四边形三角化与索引复用</h3><p>切换 fan、strip 与 indexed，比较共享边、顶点记录和索引项。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter04.html"><small>← 上一章</small>相机、视图、投影与视口</a><a href="chapter06.html"><small>下一章 →</small>网格拓扑、法线、绕序与三角化</a></nav></article>
     </main>
   </div>
-  <footer class="site-footer">RenderTorch · 从像素到物理的中文教学书 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
 </body>
 </html>
