@@ -1,0 +1,344 @@
+"""第十章：软体、布料与综合项目。正文与实验均为本教材原创。"""
+
+CHAPTER = (
+    10,
+    "physics10",
+    "单元四：从点到刚体和软体",
+    "软体、布料与综合项目",
+    "把多个质点连接成可变形网格：从距离、面积到四面体体积，比较弹簧、PBD 与 XPBD，再用布料和二维面积实验综合检查碰撞、指标、性能与当前 Python 的能力边界。",
+    (
+        "用质点、连接和约束描述软体，而不是把软体当作一个位置固定的点",
+        "辨认三角网格中的结构边、剪切边、固定点和渲染三角形",
+        "区分质量弹簧、PBD 和 XPBD 的作用位置、参数与误差含义",
+        "理解应变限制、四面体体积和体积梯度的作用与退化风险",
+        "核对粒子—动态球耦合、自碰撞缺口和综合实验的真实实现",
+        "用最大约束误差、面积误差、周长比和有限时间诊断比较算法",
+        "明确浏览器概念实验与当前 Python 软体、布料实现之间不能混同的能力",
+    ),
+    ("第八章的弹簧、PBD、XPBD 与面积约束", "第九章的平移球和粒子接触", "质点积分与固定时间步"),
+    (
+        (
+            "multiparticle-softbody",
+            "从点到网格",
+            "多粒子软体：形状由许多状态共同决定",
+            r"""
+<p>软体没有唯一“形状坐标”。一个软方块受到挤压时，不同角点移动的距离和方向可以不同。若只保存质心，就会把这种变形全部丢掉。多粒子模型把物体离散成若干质点，每个质点保存位置、速度和逆质量，再用连接约束描述它们之间的相对关系。</p>
+<p>设第 \(i\) 个质点的质量为 \(m_i\)，逆质量为 \(w_i=1/m_i\)。固定点令 \(w_i=0\)，于是约束投影不会移动它；自由点满足 \(w_i>0\)。这不是“没有质量”的数学技巧，而是用逆质量编码该点能否响应约束冲量。若所有相关点都固定，距离约束的加权分母 \(w_a+w_b\) 为零，投影应当跳过。</p>
+\[
+\mathbf x_i'=\mathbf x_i+\mathbf v_i h,
+\qquad
+\mathbf v_i'=\mathbf v_i+\mathbf a_i h,
+\qquad
+w_i=\frac1{m_i}.
+\]
+<p>当前 Python 的 <code>build_softbody_cube</code> 默认构造分辨率 \(3\) 的立方体，共有 \(3^3=27\) 个质点。距离约束连接轴相邻的结构邻居，以及包含对角偏移的剪切邻居。它还有表面三角形和六个四面体体积约束；这些信息分别服务于不同目的，不能因为画面上只有表面，就认为内部没有状态。</p>
+<p><strong>离散模型不是物体本身。</strong>网格分辨率决定能表示多细的褶皱。分辨率 \(3\) 可以描述整体压缩和倾斜，却不能表示密集波纹。增加节点也增加约束、接触和计算成本，所以“更细”不自动等于“更真实”，还要看材料参数、时间步和求解预算。</p>
+<p><strong>能力边界。</strong>本章两个 Demo 都是浏览器概念实验，调用共享数值核心。它们不是当前 Python 软体求解器的逐位复刻，也不会自动生成 Python 的体积网格。</p>
+<p><strong>本节小结：</strong>软体状态是一组相互约束的质点；逆质量决定谁能动，连接决定形状怎样变化。</p>
+""",
+        ),
+        (
+            "triangular-mesh",
+            "连接与表面",
+            "三角网格：结构边、剪切边与真实三角形",
+            r"""
+<p>三角网格把相邻质点连接成最简单的二维面片。若三个点按顺序组成三角形，平面渲染可以直接填充这三个顶点；若只把质点画成点，或只画水平和竖直交叉线，观众看到的并不是真正的三角连接。</p>
+<p>对布料网格的一格，记左上角为 \(a\)、右上角为 \(b\)、左下角为 \(c\)、右下角为 \(d\)。本章浏览器布料按 \(x\) 向右、\(y\) 向上定向，使用三角形 \((a,c,b)\) 和 \((b,c,d)\)。连接是几何事实，三角形绕向则影响填充和法线解释。</p>
+\[
+T_1=(a,c,b),\qquad T_2=(b,c,d).
+\]
+<p><strong>结构边</strong>连接左右或上下相邻节点，主要抵抗拉伸和压缩；<strong>剪切边</strong>连接同一格的交叉对角，主要抵抗网格被剪成歪斜平行四边形。一个 \(R\) 行 \(C\) 列的规则布料，若没有额外连接，结构边数为 \(R(C-1)+(R-1)C\)，剪切边数为 \(2(R-1)(C-1)\)，三角形数为 \(2(R-1)(C-1)\)。</p>
+<p>本章 <code>cloth-showcase</code> 采用 \(7\times5\)：\(35\) 个质点、\(58\) 条结构边、\(48\) 条剪切边，共 \(106\) 条建模距离链接和 \(48\) 个真实三角形。最大约束误差只遍历这 \(106\) 条链接，不把渲染线条或碰撞半径混进误差。</p>
+<p>当前 Python <code>build_cloth_grid</code> 默认是 \(12\times10\)，不是本 Demo 的 \(7\times5\)。两者都从索引和静止长度生成连接，但默认网格、坐标维度和渲染路径不同。比较时先确认网格，不能只比较一个名为“布料误差”的数字。</p>
+<p><strong>本节小结：</strong>三角网格同时包含节点、边和三角形；结构边与剪切边是约束，三角形是可用于绘制的连接。</p>
+""",
+        ),
+        (
+            "constraint-families",
+            "三类方法",
+            "三类约束：弹簧力、位置投影与柔度乘子",
+            r"""
+<p>三种方法都试图让质点间距接近静止长度 \(L_0\)，但“约束”进入方程的途径不同。质量弹簧把偏差变成力；PBD 在预测位置之后直接修正位置；XPBD 在位置修正中同时考虑材料柔度和时间步。</p>
+<p><strong>质量弹簧。</strong>沿从 \(a\) 指向 \(b\) 的单位向量 \(\mathbf n\)，相对伸长速度为 \(v_{\mathrm{rel}}=(\mathbf v_b-\mathbf v_a)\cdot\mathbf n\)。共享核心的带符号力 \(F\) 正值把 \(b\) 推离 \(a\)，因此端点加速度必须反向成对：</p>
+\[
+F=-k(L-L_0)-cv_{\mathrm{rel}},\qquad
+\mathbf a_a\mathrel{-}=\frac{F}{m_a}\mathbf n,\qquad
+\mathbf a_b\mathrel{+}=\frac{F}{m_b}\mathbf n.
+\]
+<p><strong>PBD。</strong>对距离误差 \(C=L-L_0\)，一次投影的修正量与 \(C/(w_a+w_b)\) 成正比。完整距离投影取刚度 \(s=1\)，迭代只是重复求解；把 \(s<1\) 称为“PBD 完整投影”会混淆两种不同参数。</p>
+<p><strong>XPBD。</strong>每个实际子步开始令该约束的乘子 \(\lambda=0\)，迭代内保留上一轮返回值。柔度 \(\alpha\) 通过有效柔度 \(\tilde\alpha=\alpha/h^2\) 进入分母：</p>
+\[
+\Delta\lambda=
+\frac{-C-\tilde\alpha\lambda}{w_a+w_b+\tilde\alpha},
+\qquad
+\lambda'=\lambda+\Delta\lambda.
+\]
+<p>质量弹簧的步长受显式稳定性限制，PBD 通常更耐受较大位置误差，XPBD 的有限柔度使响应更接近材料模型，但参数仍与单位和时间步有关。三者的误差不能简单解释成“谁更准确”，还要看外力、碰撞和迭代次数。</p>
+<p><strong>Python 布料弯曲事实。</strong><code>build_cloth_grid</code> 实际生成标为 <code>bend</code> 的第二邻点距离链接，即隔一个节点的水平或竖直连接；<code>XPBDCloth</code> 也有对应 XPBD bend compliance。当前缺的是独立弯曲/二面角约束，不是完全没有 bend 链接。本章 Demo 为隔离结构和剪切，明确省略 bend 链接。</p>
+<p><strong>本节小结：</strong>弹簧施加力，PBD 修正位置，XPBD 用乘子记录约束历史；它们不是同一方程的三种画法。</p>
+""",
+        ),
+        (
+            "pinned-particles",
+            "边界条件",
+            "固定点：给柔软网格一个可复现的边界",
+            r"""
+<p>一块完全自由的布在恒定风力下会整体飘走，很难观察局部褶皱。固定顶行相当于把布挂在一根杆上：边界位置已知，其余质点仍可自由运动。固定点是一种边界条件，不是额外的弹簧。</p>
+<p>本章 Demo 固定 \(7\) 个顶行质点，保留 \(28\) 个自由质点。固定点满足 \(w_i=0\)，其位置和速度始终等于确定性初值。自由点满足 \(w_i=5\)，对应质量 \(m=0.2\,\mathrm{kg}\)。碰撞核心也跳过固定点，因此球不会把挂点推离原位。</p>
+\[
+N_{\mathrm{pinned}}=7,\qquad
+N_{\mathrm{free}}=35-7=28,\qquad
+\sum_i \mathbf 1_{w_i=0}=7.
+\]
+<p>固定点与“把粒子直接设成目标位置”有本质区别。前者只规定边界点的位置，自由点仍由力积分、约束投影和碰撞决定；后者会把求解结果写死，甚至把尚未收敛的误差藏起来。本章禁止用目标位置替代求解。</p>
+<p>当前 Python <code>build_cloth_grid(pin_top=True)</code> 同样把前 <code>cols</code> 个粒子的逆质量置零。对于默认 \(10\) 列，就是固定前 \(10\) 个顶行点。Demo 的 \(7\) 个固定点来自自己的 \(7\) 列网格，不应误写成 Python 默认固定 \(7\) 个。</p>
+<p><strong>改变固定边界会改变问题。</strong>固定点越多，可变形自由度越少；完全固定时所有距离约束都失去移动对象。做算法比较时应保持固定点、初始位置和时间范围一致，否则差异可能来自边界而不是求解器。</p>
+<p><strong>本节小结：</strong>固定点通过零逆质量定义边界；它提供参照，不替代自由粒子的真实求解。</p>
+""",
+        ),
+        (
+            "strain-limit",
+            "防止过度拉伸",
+            "应变限制：给长度误差设置最后防线",
+            r"""
+<p>应变描述相对形变。对一根静止长度为 \(L_0\)、当前长度为 \(L\) 的连接，工程应变为 \(\varepsilon=(L-L_0)/L_0\)。正值表示拉伸，负值表示压缩；相对距离误差 \(\lvert\varepsilon\rvert\) 则把两种形变合并成一个非负诊断量。</p>
+\[
+\varepsilon_e=\frac{L_e-L_{0e}}{L_{0e}},
+\qquad
+E_{\max}=\max_e\frac{|L_e-L_{0e}|}{L_{0e}}.
+\]
+<p><strong>应变限制</strong>是在主求解之后检查某些连接是否超过允许区间 \([\varepsilon_{\min},\varepsilon_{\max}]\)，若超过就把长度投影回边界。例如只限制过度拉伸时，可设 \(\varepsilon_{\min}=-1\)、\(\varepsilon_{\max}=0.2\)。它是防止离奇贯穿和长条伪影的安全层，不应被描述成完整材料模型。</p>
+<p>应变限制会改变约束优先级。若压缩限制与体积、碰撞或结构约束冲突，就需要明确求解顺序和迭代预算。把所有长度同时硬夹到静止值，可能让网格无法剪切；只报告最大误差却不处理超限，则可能让薄弱连接拉断视觉上的布料。</p>
+<p>当前 Python 布料求解器没有独立的“应变限制”后处理类：它通过弹簧参数或 PBD/XPBD 的距离投影控制长度，并计算 <code>last_constraint_error</code>。本章浏览器 Demo 也没有偷偷加入额外长度钳制，\(E_{\max}\) 是按所建模结构/剪切链接计算的最大相对误差。质量弹簧模式中它仅作诊断，PBD 和 XPBD 模式中它反映有限投影后的残余。</p>
+<p><strong>误差不是能量。</strong>\(E_{\max}\) 只看最差的一条边，不看所有边的平方和，也不能告诉观众布是否获得异常动能。性能诊断应同时查看误差、时间、有限状态和接触事件。</p>
+<p><strong>本节小结：</strong>应变限制是可选的安全投影；最大应变误差是最差连接的诊断，不是材料真值。</p>
+""",
+        ),
+        (
+            "tetrahedral-volume",
+            "三维内部约束",
+            "四面体体积：让软体不只保住边长",
+            r"""
+<p>只约束边长，软体仍可能严重折塌：一个立方体网格的对角连接全部缩短，体积趋近于零，却未必违反某一条距离约束。要表示“占据空间”，需要体积类约束。四面体是最简单的三维单元，由四个质点 \(a,b,c,d\) 组成。</p>
+<p>若四个初始顶点按正体积绕向排列，有向四面体体积为 \(V=\frac16(\mathbf b-\mathbf a)\cdot[(\mathbf c-\mathbf a)\times(\mathbf d-\mathbf a)]\)：</p>
+\[
+V=\frac16(\mathbf b-\mathbf a)\cdot[(\mathbf c-\mathbf a)\times(\mathbf d-\mathbf a)].
+\]
+<p>当前 Python <code>build_softbody_cube</code> 固定生成六个四面体：每个四面体使用一个立方体角点、相邻两个面方向的角点和对角的对角点，并在初始体积为负时交换两个顶点以统一正绕向。因此，六个约束共享角点，但每个都有自己的四个顶点索引和静止体积。</p>
+<p><strong>中心粒子缺席。</strong>默认 \(3\times3\times3\) 网格的中心粒子确实存在于质点数组中，却不直接参与这六个四面体体积约束。它只通过距离约束与邻居联系。把“27 个节点都有体积梯度”写成事实是错误的；体积梯度只作用于当前约束列出的四个顶点。</p>
+<p><strong>没有细化体积网格。</strong>当前实现不是把整个立方体划分为 \(2\times3\times3\) 个标准小四面体，也没有提供自适应体积网格。六个粗四面体是明确的固定设计，适合教学整体体积保持，不保证恢复任意局部凹陷。</p>
+<p>当前软体只有结构/剪切距离约束与六个四面体体积约束，没有面积约束、独立弯曲/二面角约束、自碰撞或细化体积网格。距离链接和体积链接服务于不同观察量，不能把“有四面体”误写成“所有三角形面都有独立面积求解器”。</p>
+<p><strong>本节小结：</strong>四面体约束保护三维占据体积；当前六个约束不覆盖中心粒子的体积梯度，也不是细化网格。</p>
+""",
+        ),
+(
+            "volume-gradient",
+            "从三维到二维类比",
+            "体积梯度：用二维面积实验理解投影方向",
+            r"""
+<p>体积约束不能靠“发现体积小了，就把四个点随便向外推”来求解。必须计算体积对每个顶点位置的梯度：梯度指出“改变哪个顶点、沿哪个方向，能最快改变体积”。XPBD 再用逆质量、有效柔度和乘子分配修正。</p>
+<p>对三维有向体积 \(V\)，令 \(\mathbf e_{ab}=\mathbf b-\mathbf a\)、\(\mathbf e_{ac}=\mathbf c-\mathbf a\)、\(\mathbf e_{ad}=\mathbf d-\mathbf a\)，其梯度为：</p>
+\[
+\nabla_aV=-\frac16(\mathbf e_{ac}\times\mathbf e_{ad}+
+\mathbf e_{ad}\times\mathbf e_{ab}+\mathbf e_{ab}\times\mathbf e_{ac}),
+\]
+\[
+\nabla_bV=\frac16\mathbf e_{ac}\times\mathbf e_{ad},\quad
+\nabla_cV=\frac16\mathbf e_{ad}\times\mathbf e_{ab},\quad
+\nabla_dV=\frac16\mathbf e_{ab}\times\mathbf e_{ac}.
+\]
+<p>本章 <code>soft-area</code> 是挂在 <code>volume-gradient</code> 下的<strong>二维四粒子面积类比</strong>，不是三维体积求解器。四个点保持原始绕向，面积误差为 \(C=A-A_0\)。共享 <code>projectAreaXPBD</code> 会根据当前有向面积归一化约束符号，再计算四个面积梯度并投影。</p>
+\[
+A=\frac12\sum_{i=0}^{3}(x_i y_{i+1}-x_{i+1}y_i),
+\qquad x_4=x_0,\ y_4=y_0,
+\]
+\[
+C=A-A_0,\qquad
+\Delta\lambda=\frac{-C-\tilde\alpha\lambda}
+{\sum_i w_i\lVert\nabla_iA\rVert^2+\tilde\alpha}.
+\]
+<p>硬模式令 \(\alpha=0\)，只靠有限迭代收敛，不能承诺一次投影或任意迭代后严格为零误差；软模式使用控件选择的有限正柔度，允许材料暂时偏离静止面积。切换模式会从同一确定性初始四边形重建，而不是把上一次的变形结果继续硬压。</p>
+<p>拖拽会暂停播放、把目标限制在有限交互框，并保持原绕向。重合、共线、交叉、翻面或非有限坐标会被拒绝，保留最后有效几何；替换几何后乘子归零。报告同时包含绝对/相对面积误差、周长、周长与静止周长之比、柔度、迭代、lambda 和有限状态。</p>
+<p><strong>面积不等于全部形状。</strong>两个四边形可以有相同面积，却有完全不同的边长和周长比。正因如此，本实验把周长比作为形变诊断，而不是只展示一个面积数字。</p>
+<p><strong>本节小结：</strong>梯度决定约束修正方向；二维面积是理解体积投影的类比，不是当前 Python 已具备面积求解器的证据。</p>
+""",
+        ),
+        (
+            "particle-rigid-coupling",
+            "双向碰撞",
+            "粒子/刚体双向碰撞：每次完整步只耦合一次",
+            r"""
+<p>布料与运动球相遇时，球应把接近的质点推开，布料也应给球反作用。只让球穿过布料，或只移动布料而不响应球，都不是双向耦合。二维共享核心处理粒子—圆形障碍：合并半径为 \(R+r\)，法线从球心指向粒子，位置投影到接触圆，并只在接近时改变速度。</p>
+\[
+d=\lVert\mathbf x_p-\mathbf x_c\rVert,\qquad
+R_{\mathrm{combined}}=R+r,\qquad
+v_n=(\mathbf v_p-\mathbf v_c)\cdot\mathbf n.
+\]
+<p>当 \(v_n<0\) 时，共享核心把法向速度乘以 \(-e\)，并对切向速度施加乘法阻尼。这不是完整库仑冲量，也不包含有限接触时间和材料压入量。若 \(d\le\epsilon\)，核心不伪造法线；Demo 必须自己识别球心与自由粒子重合并暂停，避免除零或无声穿透。</p>
+<p><strong>当前 Python 的耦合时机。</strong><code>app/physics_controller.py</code> 的 <code>single_step()</code> 先调用 <code>simulation.single_step()</code>；若存在独立刚体模拟，再调用 <code>body_simulation.single_step()</code>，随后只调用一次 <code>collide_with_particles</code>。也就是说，布料—动态球在每个完整固定步后只耦合一次，不是在每个布料内部子步都重复调用。</p>
+\[
+\text{完整固定步：布料推进}\rightarrow\text{球推进}\rightarrow
+\text{一次 collide\_with\_particles}.
+\]
+<p>本章浏览器 Demo 为了更清楚地隔离接触，在自己的四个实际子步中都调用共享粒子—球碰撞。这是浏览器实验的时间安排，不能反过来说 Python 控制器也每个子步耦合。浏览器球采用算法间共享的确定性解析轨迹，拖拽只改变当前显示位置，不注入巨大速度。</p>
+<p><strong>接触事件计数。</strong>只有从 \(d>R_{\mathrm{combined}}\) 新进入 \(d\le R_{\mathrm{combined}}\)、且碰撞前接近球面的自由粒子才增加一次计数。持续投影在接触圆上的静止接触不重复计数；离开接触圆后再次接近才是新事件。</p>
+<p><strong>本节小结：</strong>接触需要合并半径、接近方向和位置投影；Python 控制器每个完整固定步只做一次布料—动态球耦合。</p>
+""",
+        ),
+        (
+            "self-collision",
+            "尚未实现的接触",
+            "自碰撞概念：薄片不能凭空穿过自己",
+            r"""
+<p>自碰撞是同一个可变形物体的不同部分之间的接触。布可以折叠，挤压的软块可以贴合；若两片非相邻表面穿过彼此，画面会出现不可能的交叉。外部球碰撞只检查“粒子对球”，不能自动发现“粒子的这一片对另一片”。</p>
+<p>直觉上可以用空间哈希把质点分组，只检查邻近单元中的候选对，再用三角形或边距离判断真实接触。但相邻三角形、缝合连接和折叠处需要排除规则；修正时还要避免把已经满足的约束再次拉坏。若质点半径为零，仅检查点重合也会漏掉边—边交叉。</p>
+\[
+C_{\mathrm{self},ij}=
+\max(0,r_i+r_j-\lVert\mathbf x_i-\mathbf x_j\rVert),
+\]
+<p>这只是点对点穿透深度的概念式，不是完整的三角形自碰撞器。真实实现还要处理连续时间、法线退化、摩擦、两侧接触和求解顺序。时间步越小，高速薄片仍可能在一个子步内完全穿过，必要时需要连续碰撞检测或更保守的子步。</p>
+<p><strong>当前 Python 没有自碰撞。</strong>布料和软体代码没有空间哈希自接触、非邻接三角形碰撞或薄片 CCD。本章两个 Demo 也没有实现自碰撞；拖动二维四边形时拒绝交叉，是在编辑交互层保持合法绕向，不是运行时自碰撞求解。看到这些保护，不能推断 Python 已能阻止布料折叠自穿。</p>
+<p>把自碰撞加入现有系统，需要先定义拓扑邻居、接触对筛选、位置修正与速度响应，再测试极端折叠和性能。仅仅对所有质点对做一次两两检查，节点增加时成本会近似按 \(N^2\) 增长，不能作为无限分辨率方案。</p>
+<p><strong>本节小结：</strong>自碰撞防止物体不同部分互穿；当前 Python 和本章 Demo 都没有完整自碰撞能力。</p>
+""",
+        ),
+        (
+            "integrated-scene",
+            "综合实验",
+            "综合场景：同题比较三类布料求解器",
+            r"""
+<p><code>cloth-showcase</code> 是浏览器概念实验，把网格、外力、移动球、约束求解和诊断放进同一个有限场景。切换质量弹簧、PBD 或 XPBD 时，控件会暂停并从同一确定性初始几何重建；球轨迹和风力也使用同一时间参考，不会把上一算法的终点偷偷当作新算法的起点。</p>
+<p>网格固定为 \(7\) 列、\(5\) 行，顶行 \(7\) 点固定、其余 \(28\) 点自由。结构/剪切链接共 \(106\) 条，绘制 \(48\) 个真实三角形。标签明确省略 bend 链接，以便把结构/剪切误差解释清楚。当前 Python 布料实际还有第二邻点 bend 距离链接，但这里不假装复刻它。</p>
+<p>共享 UI 每次运输 \(H=1/60\,\mathrm s\)，Demo 内部做四个 \(h=1/240\,\mathrm s\) 实际子步，总模拟时间仍只增加 \(H\)。质量弹簧用真实 <code>springForce</code> 做力积分，\(k_{\mathrm{struct}}=300+600s\)、\(k_{\mathrm{shear}}=150+300s\)，固定阻尼 \(c=0.8\)。PBD 以 \(s=1\) 做完整距离投影。</p>
+<p>XPBD 默认使用非零柔度：\(\alpha=(1-s)\times0.001+0.00001\)，其中强度控件 \(s\in[0,1]\)。每条链接的 lambda 在每个实际子步开始时归零，只在该子步的迭代中累加。迭代控件适用于 PBD/XPBD；强度控件适用于质量弹簧的劲度和 XPBD 的柔度，对 PBD 完整投影不改变 \(s=1\)。</p>
+<p><strong>求解器与碰撞伪代码。</strong>下面把每个外层更新拆成四个真实子步；外层开始时固定 <code>outerTime</code>，球和风力都从同一个 <code>sampleTime</code> 取样，同时 <code>t</code> 仍按每个实际子步向后推进，避免把已累计时间再次加入子步偏移。共享碰撞核心假设球心静止，因此必须换到球相对速度坐标系，再把响应转换回世界坐标：</p>
+<pre><code>outerTime = t
+for substep in range(4):
+    sampleTime = outerTime + substep * h
+    sphere = analyticReference(sampleTime)
+    applyForces(particles, h, sampleTime)  # mass-spring 分支在此调用 springForce
+    previous = clonePositions(particles)
+    predict(particles, h)
+    if algorithm != "mass-spring":
+        if algorithm == "XPBD":
+            lambda = 0  # 每个实际子步重置；迭代内连续累加
+        for iteration in range(I):
+            projectAllDistanceLinks(particles, lambda)
+        velocities = (positions - previous) / h
+    for free particle in particles:
+        relative = clone(particle)
+        relative.vx = particle.vx - sphere.vx
+        relative.vy = particle.vy - sphere.vy
+        stationaryCenter = clone(sphere)
+        stationaryCenter.vx = stationaryCenter.vy = 0
+        result = collideParticleSphere(relative, stationaryCenter, R, r, e, friction)
+        result.vx = result.vx + sphere.vx
+        result.vy = result.vy + sphere.vy
+        countOnlyNewApproachingPenetration(particle, relative, result, sphere)
+    t = t + h</code></pre>
+\[
+h=\frac{H}{4}=\frac1{240}\,\mathrm s,\qquad
+t_{k+1}=t_k+H,\qquad
+\alpha=(1-s)10^{-3}+10^{-5}>0.
+\]
+<p>风力以确定性水平加速度和缓慢竖直变化为参考，质量弹簧与投影方法都在预测前加入相同外力。碰撞球沿 \(6\,\mathrm s\) 周期的共享轨迹运动，使用合并半径、恢复与切向阻尼；拖拽球会暂停并限制位置，释放后仍按模拟时间回到参考轨迹。</p>
+<p>读数包括算法名、最大相对约束误差、新接近接触数、固定点数、自由点数、模拟时间与有限状态。质量弹簧的最大误差仅作诊断，因为弹簧允许有限伸长；PBD/XPBD 的误差来自有限迭代。播放在 \(6\,\mathrm s\) 自动停止，退化或非有限状态也会暂停并提示重置。</p>
+<p><strong>本节小结：</strong>同初值、同外力、同碰撞参考和明确指标，使三种算法可以比较；浏览器结果不等于 Python 的精确输出。</p>
+""",
+        ),
+        (
+            "performance-metrics",
+            "测量而非印象",
+            "性能指标：误差、时间、接触与有限状态",
+            r"""
+<p>“看起来更稳”不是可重复的性能结论。至少分开记录四类指标：约束误差、计算工作量、接触事件和数值状态。画面流畅可能来自低分辨率，约束误差小也可能来自把粒子写死，因此指标必须与实现一起解释。</p>
+<p>本章布料误差严格定义为 \(E_{\max}=\max_e\frac{|L_e-L_{0e}|}{L_{0e}}\)，其中只遍历所建模结构/剪切链接：</p>
+\[
+E_{\max}=\max_{e\in E_{\mathrm{struct}}\cup E_{\mathrm{shear}}}
+\frac{|L_e-L_{0e}|}{L_{0e}},
+\qquad L_e=\lVert\mathbf x_b-\mathbf x_a\rVert.
+\]
+<p>二维面积实验分别报告绝对误差 \(\lvert A-A_0\rvert\)、相对误差 \(\lvert A-A_0\rvert/A_0\)、当前周长 \(P\) 和周长比 \(P/P_0\)。若面积恢复而周长比很大，说明形状仍明显改变；若 lambda 很大而误差很小，可能只是这一轮接近收敛，不能据此推断永远稳定。</p>
+\[
+E_A=\frac{|A-A_0|}{A_0},\qquad
+D_P=\frac{P}{P_0},\qquad
+P=\sum_{i=0}^{3}\lVert\mathbf x_{i+1}-\mathbf x_i\rVert.
+\]
+<p>计算工作量可以数真实函数调用：四个子步、\(I\) 次迭代、\(E\) 条链接，PBD/XPBD 每次外层更新需要 \(4IE\) 次距离投影。默认 \(I=8\)、\(E=106\)，即 \(3392\) 次投影；这还不包括外力、碰撞和绘图。测量墙上时钟时间还会受设备、浏览器和垃圾回收影响。</p>
+<p><strong>数值算例。</strong>把默认值代入 \(4IE\)：\(4\times8=32\)，再算 \(32\times106=3392\)，即 <code>4 × 8 × 106 = 3392</code> 次距离投影。这个数只包括每个外层更新的距离投影调用，<strong>不包括</strong>外力/弹簧力、球体碰撞、误差测量、UI 读数与 Canvas 绘图，也不代表所有算法的调用数相同。</p>
+<p><strong>接触数不是接触压强。</strong>本章只数新穿透且接近的粒子—球事件，不累计接触持续时间，也不乘冲量大小。要研究压强，需要接触面积、法向力和时间积分，当前 Demo 没有这些量。</p>
+<p><strong>有限状态是安全门。</strong>任何位置、速度、lambda、面积、周长或时间出现 NaN/Infinity，都应暂停并提示重置，不能把 NaN 显示为零。退化几何要单独处理：面积梯度或碰撞法线没有定义时，继续投影只会放大错误。</p>
+<p><strong>本节小结：</strong>误差衡量约束，调用数衡量工作量，事件数衡量新接触，有限状态决定结果能否被信任。</p>
+""",
+        ),
+        (
+            "roadmap-debugging",
+            "边界与后续",
+            "后续路线与调试：先核对模型，再增加能力",
+            r"""
+<p><strong>当前 Python 边界。</strong>软体只有结构/剪切距离约束与六个四面体体积约束；中心粒子不直接参与体积约束；没有面积约束、没有独立弯曲/二面角约束、没有自碰撞，也没有细化体积网格。布料—动态球在 <code>app/physics_controller.py</code> 每个完整固定步的 <code>simulation.single_step()</code> 和 <code>body_simulation.single_step()</code> 后，只调用一次 <code>collide_with_particles</code>。</p>
+<p>布料构建器还有标为 bend 的第二邻点距离链接和 XPBD bend compliance，这一点不能漏写；缺少的是独立弯曲/二面角约束。“有 bend 参数”与“有完整薄片弯曲模型”不是同一个能力层级。</p>
+<p><strong>浏览器能力也要分清。</strong><code>cloth-showcase</code> 真实调用共享弹簧、距离投影和粒子—球碰撞；<code>soft-area</code> 真实调用共享面积 XPBD，但只是二维四粒子面积类比。它们没有实现 Python 没有的三维面积、自碰撞或完整刚体反作用，也不证明生产 Python 已经拥有这些能力。</p>
+<p><strong>精度承诺。</strong>Python 状态使用 float32，浏览器共享核心和本章算法使用 JavaScript 双精度。不同舍入、约束顺序、时间步和接触分支使结果不承诺逐位一致。可比较趋势、初值、连接和误差定义，不能把浏览器数字当作 Python 的精确预测。</p>
+\[
+\text{调试顺序：初值}\rightarrow\text{连接/绕向}\rightarrow
+\text{端点力符号}\rightarrow\text{时间累计}\rightarrow\text{lambda 生命周期}
+\rightarrow\text{碰撞事件}\rightarrow\text{有限状态}.
+\]
+<p><strong>症状清单。</strong>布料一开始就错误拉伸，先检查静止长度和索引；质量弹簧越拉越长，先检查 \(a\) 是否减、\(b\) 是否加；PBD 切换后位置不重置，检查控件重建；XPBD 误差突然增大，检查 lambda 是否跨子步保留；接触数在静止时暴涨，检查是否把每个投影都计为新事件。</p>
+<p><strong>可操作自测。</strong>依次运行下面三步，并把观察与答案对照：</p>
+<ol>
+<li><strong>问题：</strong>让球向一个静止粒子移动，接触数应如何变化，粒子速度属于哪个坐标系？<strong>预期观察/答案：</strong>从球外新进入合并半径时只增加一次新接近接触数；用粒子速度减球速度计算相对法向速度（先换到球相对速度坐标系），碰撞后再加回球速度，所以静止粒子会获得世界坐标系中的响应。</li>
+<li><strong>问题：</strong>若粒子在世界坐标中向右运动，但球向右更快，是否仍算接近？<strong>预期观察/答案：</strong>算。只要 \((\mathbf v_p-\mathbf v_c)\cdot\mathbf n&lt;0\)，相对运动仍然指向球面；不能只看粒子的绝对速度。</li>
+<li><strong>问题：</strong>接触后原地停留几帧，再切换算法，应看到什么？<strong>预期观察/答案：</strong>静止投影接触不重复增加新接近接触数；切换算法后粒子、球和时间回到同一确定性初值。若接触数持续暴涨或旧形变被保留，就检查事件分支和控件重建。</li>
+</ol>
+<p>面积为零或球心与粒子重合时，不要临时编造法线。应保留最后有效几何并暂停，或拒绝拖拽候选。Canvas 只是观察窗口，不能通过裁剪非有限坐标、隐藏读数或移动固定点来让画面“正常”。</p>
+<p><strong>后续路线。</strong>可以先增加受限的应变安全投影、空间哈希自接触候选和明确邻居排除；再考虑独立二面角弯曲、细化体积网格、动态球对软体的双向冲量，以及 CCD。每一步都先写最小可复现测试，再添加能力。</p>
+<p><strong>本节小结：</strong>先确认当前模型和指标，再扩展功能；真实核心、有限播放和可检查的失败状态比漂亮画面更重要。</p>
+""",
+        ),
+    ),
+    (
+        (
+            "cloth-showcase",
+            "7×5 三角布料：质量弹簧、PBD、XPBD 与移动球",
+            "demos/physics19.js",
+            "浏览器概念实验；默认暂停，固定六秒。35 粒子、顶行 7 固定/28 自由，58 结构边、48 剪切边和 48 个三角形，明确省略 bend 链接。四个 1/240 秒子步运输一个 1/60 秒外层更新，显示最大结构/剪切相对误差、新接近接触数、固定点数和算法。",
+            "integrated-scene",
+        ),
+        (
+            "soft-area",
+            "二维四粒子面积类比：硬/软 XPBD 与合法拖拽",
+            "demos/physics20.js",
+            "浏览器概念实验，不是三维体积求解器；默认暂停，固定一秒。硬模式 compliance=0，软模式使用有限正柔度，从同一初始四边形重建。显示绝对/相对面积误差、周长、周长比、柔度、迭代、lambda 和有限状态；拖拽拒绝退化、交叉和非有限几何。",
+            "volume-gradient",
+        ),
+    ),
+    (
+        (
+            "physics/cloth/geometry.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/geometry.py",
+            "当前 Python 实现：结构、剪切和第二邻点 bend 距离链接，固定顶行逆质量与真实三角形连接。",
+        ),
+        (
+            "physics/softbody/geometry.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/geometry.py",
+            "当前 Python 实现：结构/剪切距离约束、六个共享角点的四面体、表面三角形；中心粒子不直接参与体积约束。",
+        ),
+        (
+            "physics/softbody/xpbd.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/xpbd.py",
+            "当前 Python 实现：距离与体积 XPBD 投影、每步乘子清零、四顶点体积梯度和体积误差。",
+        ),
+        (
+            "app/physics_controller.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/physics_controller.py",
+            "当前 Python 控制器：每个完整固定步推进布料和动态球后，只调用一次 collide_with_particles。",
+        ),
+        (
+            "book/assets/physics-core.js",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/book/assets/physics-core.js",
+            "浏览器共享核心：带符号弹簧力、PBD/XPBD 距离投影、粒子—球碰撞与保持绕向的二维面积 XPBD。",
+        ),
+    ),
+)

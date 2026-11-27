@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>场景、模型文件、场景图与包围体</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html" aria-current="page"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 09 / 15 · 二、几何建模</p><h1>场景、模型文件、场景图与包围体</h1><p class="lede">用模型矩阵、场景图和包围体组织多物体场景，并建立粗粒度裁剪基础。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>把局部坐标通过父子变换送到世界坐标</li><li>解释 OBJ 索引、AABB 和视锥裁剪</li></ol><p><strong>先验知识：</strong>第 3 章的矩阵复合、第 5 章的网格表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">局部模型放进全局场景</div><div class="prose"><h2>场景图把变换组织成父子链</h2><p>一个角色的手臂不应把“角色已经走到哪里”写进每一个局部顶点。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 09 / 15 · 二、几何建模</p><h1>场景、模型文件、场景图与包围体</h1><p class="lede">用模型矩阵、场景图和包围体组织多物体场景，并建立粗粒度裁剪基础。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">9.1 学习目标</a><a href="#intuition">9.2 局部模型放进全局场景</a><a href="#definitions">9.3 符号与定义</a><a href="#derivation">9.4 逐步推导</a><a href="#example">9.5 数值算例</a><a href="#pseudocode">9.6 伪代码与实现映射</a><a href="#self-test">9.7 自测</a><a href="#debugging">9.8 常见错误与调试</a><a href="#status">9.9 实现状态</a><a href="#sources">9.10 源码映射</a><a href="#demo">9.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">9.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>把局部坐标通过父子变换送到世界坐标</li><li>解释 OBJ 索引、AABB 和视锥裁剪</li></ol><p><strong>先验知识：</strong>第 3 章的矩阵复合、第 5 章的网格表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">9.2 · 局部模型放进全局场景</div><div class="prose"><h2>场景图把变换组织成父子链</h2><p>一个角色的手臂不应把“角色已经走到哪里”写进每一个局部顶点。
                 更合理的做法是：模型保留局部坐标，父节点记录角色整体的平移和旋转，
                 子节点记录手臂相对肩部的运动。渲染时再沿父子链组合变换。</p>
                 <p>模型文件负责几何与属性，场景图负责实例化和层级关系，包围体负责快速排除。
@@ -32,7 +32,7 @@
                 <rect x="105" y="175" width="180" height="58" rx="10" fill="#087f83"/><text x="195" y="211" text-anchor="middle" fill="white">Child · R</text>
                 <path d="M285 204L460 204" stroke="#c66b35" stroke-width="2" marker-end="url(#scene-arrow)"/>
                 <rect x="470" y="168" width="140" height="72" rx="10" fill="#f2dfcf" stroke="#c66b35"/><text x="540" y="199" text-anchor="middle">p_local</text><text x="540" y="224" text-anchor="middle">→ p_world</text>
-                </svg><p><strong>图 9.1</strong>　世界变换由父节点与子节点矩阵复合得到；包围体也随实例变换。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>模型矩阵、场景图、OBJ 与包围体</h2><p>使用第 3 章的列向量约定，把局部点变到世界点的矩阵叫模型矩阵：</p>
+                </svg><p><strong>图 9.1</strong>　世界变换由父节点与子节点矩阵复合得到；包围体也随实例变换。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">9.3 · 符号与定义</div><div class="prose"><h2>模型矩阵、场景图、OBJ 与包围体</h2><p>使用第 3 章的列向量约定，把局部点变到世界点的矩阵叫模型矩阵：</p>
                 <div class="formula">\[\mathbf p_{\mathrm{world}}=M_{\mathrm{model}}\mathbf p_{\mathrm{local}}.\]</div>
                 <p>若父变换为 \(M_{\mathrm{parent}}\)、子变换为 \(M_{\mathrm{child}}\)，则：</p>
                 <div class="formula">\[M_{\mathrm{model}}=M_{\mathrm{parent}}M_{\mathrm{child}}.\]</div>
@@ -45,7 +45,7 @@
                 <p>轴对齐包围盒 AABB 由六个极值定义：</p>
                 <div class="formula">\[\mathrm{AABB}=[\min_x,\max_x]\times[\min_y,\max_y]\times[\min_z,\max_z].\]</div>
                 <p>包围球用中心 \(\mathbf c\) 和半径 \(r\) 表示，要求球包含物体的所有顶点：
-                \(r=\max_i\lVert\mathbf p_i-\mathbf c\rVert\)。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>父子变换、包围盒与粗粒度视锥判断</h2><p>父节点平移 \(\mathbf t=(2,0,0)\)，子节点绕 z 轴旋转 \(90^\circ\)。
+                \(r=\max_i\lVert\mathbf p_i-\mathbf c\rVert\)。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">9.4 · 逐步推导</div><div class="prose"><h2>父子变换、包围盒与粗粒度视锥判断</h2><p>父节点平移 \(\mathbf t=(2,0,0)\)，子节点绕 z 轴旋转 \(90^\circ\)。
                 局部点 \(\mathbf p=(1,0,0)\) 先旋转到 \((0,1,0)\)，再平移到 \((2,1,0)\)：</p>
                 <div class="formula">\[\mathbf p_{\mathrm{world}}=
                 T(2,0,0)R_z(90^\circ)\mathbf p=(2,1,0).\]</div>
@@ -61,7 +61,7 @@
                 <p>这是保守判断：可能相交就要继续处理三角形，可能相交不等于一定可见。
                 对 AABB，可用投影半径
                 \(\rho_k=|n_{k,x}|h_x+|n_{k,y}|h_y+|n_{k,z}|h_z\)
-                做类似判断，其中 \(h_x,h_y,h_z\) 是 AABB 半尺寸。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>旋转盒子后的世界 AABB</h2><p>取局部正方形盒子 \([0,1]\times[0,1]\)，四个角点为
+                做类似判断，其中 \(h_x,h_y,h_z\) 是 AABB 半尺寸。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">9.5 · 数值算例</div><div class="prose"><h2>旋转盒子后的世界 AABB</h2><p>取局部正方形盒子 \([0,1]\times[0,1]\)，四个角点为
                 \((0,0),(1,0),(1,1),(0,1)\)。先绕原点旋转 \(90^\circ\)：</p>
                 <div class="formula">\[R_z(90^\circ)(x,y)=(-y,x).\]</div>
                 <p>旋转后的角点为 \((0,0),(0,1),(-1,1),(-1,0)\)，范围是
@@ -71,7 +71,7 @@
                 场景图的意义正是让这类顺序显式可见，而不是把多个数字手工合并到模型文件里。</p>
                 <p>局部盒子中心是 \((0.5,0.5)\)，包围球半径
                 \(r=\sqrt{0.5^2+0.5^2}=\sqrt{0.5}\approx0.7071\)。
-                包围球比 AABB 更保守，但求交判断通常更便宜。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>从 OBJ 索引到场景节点</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                包围球比 AABB 更保守，但求交判断通常更便宜。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">9.6 · 伪代码与实现映射</div><div class="prose"><h2>从 OBJ 索引到场景节点</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>for line in obj_lines:
     if line.startswith("v "):
         vertices.append([float(value) for value in line.split()[1:]] + [1.0])
@@ -84,16 +84,16 @@ world_vertices = local_vertices @ world_matrix.T
 minimum = world_vertices.min(axis=0)
 maximum = world_vertices.max(axis=0)</code></pre></div>
                 <p>当前 OBJ 导入只读取位置和面，不解析法线或 UV。场景层也没有通用父子节点树，
-                因此本章实验展示的是后续场景图设计，而不是对现有功能的重复。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>坐标空间与包围体</h2><details><summary>问题 1：父平移和子旋转的先后顺序为什么重要？</summary>
+                因此本章实验展示的是后续场景图设计，而不是对现有功能的重复。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">9.7 · 自测</div><div class="prose"><h2>坐标空间与包围体</h2><details><summary>问题 1：父平移和子旋转的先后顺序为什么重要？</summary>
                 <p><strong>答案：</strong>旋转和平移通常不交换。矩阵乘法顺序决定局部点先经历哪一步。</p></details>
                 <details><summary>问题 2：模型旋转后，原来的 AABB 一定仍是最小 AABB 吗？</summary>
                 <p><strong>答案：</strong>不一定。应重新计算变换后所有顶点的坐标极值。</p></details>
                 <details><summary>问题 3：包围球与视锥“可能相交”代表物体一定可见吗？</summary>
-                <p><strong>答案：</strong>不代表。包围体是保守代理，仍可能被其他物体遮挡或完全没有三角形覆盖像素。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>场景坐标与可见性问题</h2><ol class="debug-list"><li><strong>物体位置偏移：</strong>先打印局部点、模型矩阵和世界点，逐级检查父子顺序。</li>
+                <p><strong>答案：</strong>不代表。包围体是保守代理，仍可能被其他物体遮挡或完全没有三角形覆盖像素。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">9.8 · 常见错误与调试</div><div class="prose"><h2>场景坐标与可见性问题</h2><ol class="debug-list"><li><strong>物体位置偏移：</strong>先打印局部点、模型矩阵和世界点，逐级检查父子顺序。</li>
                 <li><strong>OBJ 导入崩溃：</strong>检查 1-based 索引、负索引和 <code>v/vt/vn</code> 三种索引语义。</li>
                 <li><strong>包围体漏掉物体：</strong>确认包围体由变换后的顶点重新计算，且动画后更新。</li>
                 <li><strong>该裁剪的没裁剪：</strong>检查平面法线与点积符号是否采用同一内外约定。</li>
-                <li><strong>该显示的被误剔除：</strong>调试时先禁用粗粒度视锥判断，确认是包围体还是三角形管线的问题。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>场景图概念实验与当前项目边界</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验显示父平移、子旋转、局部点到世界点的映射，
+                <li><strong>该显示的被误剔除：</strong>调试时先禁用粗粒度视锥判断，确认是包围体还是三角形管线的问题。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">9.9 · 实现状态</div><div class="prose"><h2>场景图概念实验与当前项目边界</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验显示父平移、子旋转、局部点到世界点的映射，
                 并切换 AABB 与包围球进行二维视锥粗检。它是场景图概念演示，不是三维模型编辑器。</p>
                 <p><span class="status-pill">现有 RenderTorch</span>
                 <code>core/scene.py</code> 为每个对象保存一个模型矩阵；
@@ -101,7 +101,7 @@ maximum = world_vertices.max(axis=0)</code></pre></div>
                 <code>solid/custom.py</code> 可读取 OBJ 的位置和面；
                 <code>renderer/pipeline.py</code> 使用 <code>world_vertices()</code> 得到世界坐标。</p>
                 <p><span class="status-pill">后续实现路线</span> 当前场景没有通用父子节点树、AABB 或视锥粗检。
-                下一步可以增加场景节点父子关系、变换缓存和世界空间包围体，再考虑对象级剔除。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：SceneObject 模型矩阵与世界顶点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/controller.py"><span>app/controller.py</span><small>现有实现：把网格实例加入场景</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/solid/custom.py"><span>solid/custom.py</span><small>现有实现：读取 OBJ 位置与面</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：使用世界顶点进入投影管线</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="scene-demo" data-demo="scene-demo"><h3>父子变换与世界空间包围体</h3><p>调整父平移和子旋转，切换 AABB/包围球，查看局部点、世界点和视锥粗检结果。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter08.html"><small>← 上一章</small>参数曲面与细分</a><a href="chapter10.html"><small>下一章 →</small>齐次裁剪与三角形光栅化</a></nav></article>
+                下一步可以增加场景节点父子关系、变换缓存和世界空间包围体，再考虑对象级剔除。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">9.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：SceneObject 模型矩阵与世界顶点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/app/controller.py"><span>app/controller.py</span><small>现有实现：把网格实例加入场景</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/solid/custom.py"><span>solid/custom.py</span><small>现有实现：读取 OBJ 位置与面</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：使用世界顶点进入投影管线</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">9.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="scene-demo" data-demo="scene-demo"><h3>父子变换与世界空间包围体</h3><p>调整父平移和子旋转，切换 AABB/包围球，查看局部点、世界点和视锥粗检结果。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter08.html"><small>← 上一章</small>参数曲面与细分</a><a href="chapter10.html"><small>下一章 →</small>齐次裁剪与三角形光栅化</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

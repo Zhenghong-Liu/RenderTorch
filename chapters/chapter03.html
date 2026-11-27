@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>齐次坐标与几何变换</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html" aria-current="page"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 03 / 15 · 一、像素与数学</p><h1>齐次坐标与几何变换</h1><p class="lede">用统一矩阵表示平移、旋转和缩放，并理解变换顺序与法线矩阵。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>写出三维齐次点和基本变换矩阵</li><li>解释先缩放再旋转最后平移的复合顺序</li></ol><p><strong>先验知识：</strong>第 2 章的向量运算、基础矩阵乘法。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">让几何移动而不修改每个顶点</div><div class="prose"><h2>矩阵是坐标变换的规则</h2><p>一个模型可能包含数十万个顶点。逐个修改坐标既慢又容易不一致。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 03 / 15 · 一、像素与数学</p><h1>齐次坐标与几何变换</h1><p class="lede">用统一矩阵表示平移、旋转和缩放，并理解变换顺序与法线矩阵。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">3.1 学习目标</a><a href="#intuition">3.2 让几何移动而不修改每个顶点</a><a href="#definitions">3.3 符号与定义</a><a href="#derivation">3.4 逐步推导</a><a href="#example">3.5 数值算例</a><a href="#pseudocode">3.6 伪代码与实现映射</a><a href="#self-test">3.7 自测</a><a href="#debugging">3.8 常见错误与调试</a><a href="#status">3.9 实现状态</a><a href="#sources">3.10 源码映射</a><a href="#demo">3.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">3.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>写出三维齐次点和基本变换矩阵</li><li>解释先缩放再旋转最后平移的复合顺序</li></ol><p><strong>先验知识：</strong>第 2 章的向量运算、基础矩阵乘法。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">3.2 · 让几何移动而不修改每个顶点</div><div class="prose"><h2>矩阵是坐标变换的规则</h2><p>一个模型可能包含数十万个顶点。逐个修改坐标既慢又容易不一致。
 更高效的方法是构造一个矩阵，对每个点执行同一套线性变换，再统一加上平移。
 模型移动、相机旋转和物体缩放，都可以写成这种规则。</p>
 <p>本章统一采用<strong>列向量</strong>约定：点是四元素列向量，矩阵写在左边，
@@ -31,7 +31,7 @@
 <rect x="190" y="70" width="160" height="160" fill="none" stroke="#c66b35" stroke-width="3" transform="rotate(-25 270 150)"/>
 <path d="M260 170l120 15" stroke="#62727a" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#arrow-a)"/>
 <text x="75" y="210" fill="#087f83">局部形状</text><text x="210" y="250" fill="#c66b35">缩放 → 旋转 → 平移</text>
-</svg><p><strong>图 3.1</strong>　复合变换从右向左作用于列向量，几何顺序则是先缩放、再旋转、最后平移。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>齐次点与四种基本矩阵</h2><p>三维点写成 \(\mathbf p=(x,y,z,1)^\mathsf T\)。第四个分量用于区分平移：
+</svg><p><strong>图 3.1</strong>　复合变换从右向左作用于列向量，几何顺序则是先缩放、再旋转、最后平移。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">3.3 · 符号与定义</div><div class="prose"><h2>齐次点与四种基本矩阵</h2><p>三维点写成 \(\mathbf p=(x,y,z,1)^\mathsf T\)。第四个分量用于区分平移：
 点的 w=1，方向向量的 w=0。乘以含平移的矩阵时，方向不会受到位置平移影响。</p>
 <div class="formula">\[\begin{aligned}
 T(\mathbf t)&=
@@ -74,7 +74,7 @@ s&c&0&0\\
 \end{pmatrix}. &&
 \end{aligned}\]</div>
 <p>其中 \(c=\cos\alpha\)、\(s=\sin\alpha\)。列向量约定下，绕 z 轴正向旋转把
-+x 转向 +y，符合右手定则。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>复合顺序与法线变换</h2><p>如果先把点缩放 S，再旋转 R，最后平移 T，那么：</p>
++x 转向 +y，符合右手定则。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">3.4 · 逐步推导</div><div class="prose"><h2>复合顺序与法线变换</h2><p>如果先把点缩放 S，再旋转 R，最后平移 T，那么：</p>
 <div class="formula">\[\begin{aligned}
 \mathbf p_1&=S\mathbf p, \\
 \mathbf p_2&=R\mathbf p_1=RS\mathbf p, \\
@@ -94,7 +94,7 @@ N^\mathsf T A&=I \quad\Longrightarrow\quad N=A^{-\mathsf T}.
 <p>若把整个仿射模型矩阵记作 M，并对方向使用 w=0，则也常把法线矩阵写作
 \(M^{-\mathsf T}\)；求值时通常只取其左上角 3×3 线性部分。对于非均匀缩放，
 直接使用 M 会让法线方向错误。通常先求逆转置，再归一化结果；若 A 不可逆，
-说明变换把几何压扁，需要另行处理。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个点与一条法线经过复合变换</h2><p>取 \(\mathbf p=(1,0,0,1)^\mathsf T\)、\(S=\operatorname{diag}(2,1,1)\)、
+说明变换把几何压扁，需要另行处理。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">3.5 · 数值算例</div><div class="prose"><h2>一个点与一条法线经过复合变换</h2><p>取 \(\mathbf p=(1,0,0,1)^\mathsf T\)、\(S=\operatorname{diag}(2,1,1)\)、
 绕 y 轴旋转 90°，以及 \(\mathbf t=(1,2,3)\)。</p>
 <div class="formula">\[\begin{aligned}
 S\mathbf p&=(2,0,0,1)^\mathsf T, \\
@@ -105,7 +105,7 @@ TR_y(90^\circ)S\mathbf p&=(1,2,1,1)^\mathsf T.
 缩放部分的逆是 \(\operatorname{diag}(1/2,1,1)\)，旋转后再逆转置，最终法线方向为
 \((0,0,-1)\)。这与旋转后的 −z 面一致。</p>
 <div class="callout"><strong>错误对照：</strong> 如果直接把 \(\mathbf n=(1,0,0)\) 乘 M，
-会得到带平移的奇怪结果；即使忽略平移，先缩放再旋转也会错误地保留 x 方向。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>先建立约定，再封装矩阵</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 列向量约定</span><button class="copy-button" type="button" data-copy>复制</button></div>
+会得到带平移的奇怪结果；即使忽略平移，先缩放再旋转也会错误地保留 x 方向。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">3.6 · 伪代码与实现映射</div><div class="prose"><h2>先建立约定，再封装矩阵</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 列向量约定</span><button class="copy-button" type="button" data-copy>复制</button></div>
 <pre><code>def translation(tx, ty, tz):
     return [[1, 0, 0, tx], [0, 1, 0, ty],
             [0, 0, 1, tz], [0, 0, 0, 1]]
@@ -123,22 +123,22 @@ def transform_normal(matrix, normal):
     result = inverse(linear).T @ normal
     return result / norm(result)</code></pre></div>
 <p>本章实验只组合缩放、绕 z 轴旋转和平移，便于把每个中间结果与手算对应。
-项目源码中的相机旋转采用张量乘法，阅读时必须先识别它使用的是行向量还是列向量。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>检查矩阵作用的顺序</h2><details><summary>问题 1：列向量约定下，T R S 对应什么几何顺序？</summary>
+项目源码中的相机旋转采用张量乘法，阅读时必须先识别它使用的是行向量还是列向量。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">3.7 · 自测</div><div class="prose"><h2>检查矩阵作用的顺序</h2><details><summary>问题 1：列向量约定下，T R S 对应什么几何顺序？</summary>
 <p><strong>答案：</strong>先缩放 S，再旋转 R，最后平移 T。</p></details>
 <details><summary>问题 2：方向向量的 w 应设为 0 还是 1？</summary>
 <p><strong>答案：</strong>0，这样平移不会作用在方向上。</p></details>
 <details><summary>问题 3：非均匀缩放后，法线为什么需要逆转置？</summary>
-<p><strong>答案：</strong>法线必须与变换后的切向量保持垂直；直接使用 M 一般不满足这个条件。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>变换错误的快速定位</h2><ol class="debug-list"><li><strong>一次只改变一种变换：</strong>先验证纯平移、纯旋转或纯缩放，再组合。</li>
+<p><strong>答案：</strong>法线必须与变换后的切向量保持垂直；直接使用 M 一般不满足这个条件。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">3.8 · 常见错误与调试</div><div class="prose"><h2>变换错误的快速定位</h2><ol class="debug-list"><li><strong>一次只改变一种变换：</strong>先验证纯平移、纯旋转或纯缩放，再组合。</li>
 <li><strong>使用轴对齐测试点：</strong>(1,0,0) 经过 90° 旋转应落到坐标轴上，符号一目了然。</li>
 <li><strong>检查齐次 w：</strong>点的 w 通常为 1，方向为 0；投影变换后则需要透视除法。</li>
 <li><strong>打印中间结果：</strong>分别输出 S p、R S p、T R S p，不要只检查最终矩阵。</li>
-<li><strong>法线单独测试：</strong>用非均匀缩放观察法线是否仍与对应边垂直。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>概念变换器与现有相机代码</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验实时显示点、法线和物体轮廓的变换，
+<li><strong>法线单独测试：</strong>用非均匀缩放观察法线是否仍与对应边垂直。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">3.9 · 实现状态</div><div class="prose"><h2>概念变换器与现有相机代码</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验实时显示点、法线和物体轮廓的变换，
 并列出点与法线的变换结果。它用于建立矩阵顺序的直觉，不是完整场景图。</p>
 <p><span class="status-pill">现有 RenderTorch</span>
 <code>viewing/camera.py</code> 已包含相机旋转、平移和视图矩阵片段，但其张量排列采用行方向计算。
 阅读第 9 章场景图时需要先做一次约定核对。</p>
 <p><span class="status-pill">后续实现路线</span> 模型矩阵、场景图、法线矩阵应在统一坐标约定后实现，
-并用旋转可逆性、平移不改变法线、非均匀缩放垂直性作为回归测试。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/camera.py"><span>viewing/camera.py</span><small>现有实现：相机旋转与平移矩阵</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="transform-demo" data-demo="transform-demo"><h3>变换合成器：缩放、旋转与平移</h3><p>调整变换参数，观察列向量公式 M = T R S 与法线矩阵 A⁻ᵀ。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter02.html"><small>← 上一章</small>三维空间、向量、点与方向</a><a href="chapter04.html"><small>下一章 →</small>相机、视图、投影与视口</a></nav></article>
+并用旋转可逆性、平移不改变法线、非均匀缩放垂直性作为回归测试。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">3.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/camera.py"><span>viewing/camera.py</span><small>现有实现：相机旋转与平移矩阵</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">3.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="transform-demo" data-demo="transform-demo"><h3>变换合成器：缩放、旋转与平移</h3><p>调整变换参数，观察列向量公式 M = T R S 与法线矩阵 A⁻ᵀ。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter02.html"><small>← 上一章</small>三维空间、向量、点与方向</a><a href="chapter04.html"><small>下一章 →</small>相机、视图、投影与视口</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

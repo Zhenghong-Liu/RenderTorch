@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>齐次裁剪与三角形光栅化</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html" aria-current="page"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 10 / 15 · 三、光栅管线</p><h1>齐次裁剪与三角形光栅化</h1><p class="lede">在齐次空间裁剪几何，再用边函数和像素中心判断三角形覆盖。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明为什么透视除法前必须做近裁剪</li><li>从边函数推导重心坐标和覆盖判断</li></ol><p><strong>先验知识：</strong>第 4 章的投影与视口、第 2 章的二维叉积。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">把连续三角形交给离散像素</div><div class="prose"><h2>光栅化就是判断哪些像素中心被覆盖</h2><p>经过投影和视口变换，三角形已经成为屏幕上的三个二维点。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 10 / 15 · 三、光栅管线</p><h1>齐次裁剪与三角形光栅化</h1><p class="lede">在齐次空间裁剪几何，再用边函数和像素中心判断三角形覆盖。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">10.1 学习目标</a><a href="#intuition">10.2 把连续三角形交给离散像素</a><a href="#definitions">10.3 符号与定义</a><a href="#derivation">10.4 逐步推导</a><a href="#example">10.5 数值算例</a><a href="#pseudocode">10.6 伪代码与实现映射</a><a href="#self-test">10.7 自测</a><a href="#debugging">10.8 常见错误与调试</a><a href="#status">10.9 实现状态</a><a href="#sources">10.10 源码映射</a><a href="#demo">10.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">10.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明为什么透视除法前必须做近裁剪</li><li>从边函数推导重心坐标和覆盖判断</li></ol><p><strong>先验知识：</strong>第 4 章的投影与视口、第 2 章的二维叉积。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">10.2 · 把连续三角形交给离散像素</div><div class="prose"><h2>光栅化就是判断哪些像素中心被覆盖</h2><p>经过投影和视口变换，三角形已经成为屏幕上的三个二维点。
                 但屏幕并不是连续画布，而是由有限像素组成。渲染器必须决定：
                 某个像素要不要写入这个三角形，以及写入时使用哪些顶点属性。</p>
                 <p>齐次裁剪负责先去掉视锥外的部分，透视除法负责把裁剪空间变成 NDC。
@@ -32,7 +32,7 @@
                 <path d="M76 241H387V52" fill="none" stroke="#c66b35" stroke-width="2" stroke-dasharray="6 5"/>
                 <g fill="#c66b35"><circle cx="118" cy="198" r="4"/><circle cx="160" cy="198" r="4"/><circle cx="202" cy="198" r="4"/><circle cx="244" cy="198" r="4"/><circle cx="286" cy="198" r="4"/><circle cx="328" cy="198" r="4"/><circle cx="160" cy="156" r="4"/><circle cx="202" cy="156" r="4"/><circle cx="244" cy="156" r="4"/></g>
                 <text x="392" y="245" fill="#854721">包围盒</text><text x="365" y="70" fill="#854721">像素中心</text>
-                </svg><p><strong>图 10.1</strong>　只在三角形包围盒内测试像素中心；橙色虚线是包围盒，不是覆盖边界。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>齐次裁剪平面与边函数</h2><p>设裁剪空间点为 \(\mathbf q=(x_c,y_c,z_c,w_c)\)。
+                </svg><p><strong>图 10.1</strong>　只在三角形包围盒内测试像素中心；橙色虚线是包围盒，不是覆盖边界。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">10.3 · 符号与定义</div><div class="prose"><h2>齐次裁剪平面与边函数</h2><p>设裁剪空间点为 \(\mathbf q=(x_c,y_c,z_c,w_c)\)。
                 在除以 \(w_c\) 之前，六个裁剪平面要求：</p>
                 <div class="formula">\[\begin{aligned}
                 -w_c&\le x_c\le w_c,&-w_c&\le y_c\le w_c,\\
@@ -44,7 +44,7 @@
                 <div class="formula">\[E(a,b,p)=(p_x-a_x)(b_y-a_y)-(p_y-a_y)(b_x-a_x).\]</div>
                 <p>它等于有向面积的两倍，也等于二维叉积的相反数。
                 对同一个三角形，三条边函数使用同一个面积作分母时，符号会相互抵消，
-                因此不必强行让某一种顶点顺序产生正面积。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从裁剪平面到重心坐标</h2><p><strong>第一步：齐次裁剪。</strong> 对每条线段或每个多边形边，
+                因此不必强行让某一种顶点顺序产生正面积。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">10.4 · 逐步推导</div><div class="prose"><h2>从裁剪平面到重心坐标</h2><p><strong>第一步：齐次裁剪。</strong> 对每条线段或每个多边形边，
                 计算两端到裁剪平面的有符号距离。若两端都在外部，整段丢弃；
                 若一内一外，在齐次坐标中求交点：</p>
                 <div class="formula">\[t=\frac{d_{\mathrm{prev}}}{d_{\mathrm{prev}}-d_{\mathrm{cur}}},\qquad
@@ -70,7 +70,7 @@
                 y_{\max}&=\min(H,\lceil\max(y_a,y_b,y_c)\rceil).
                 \end{aligned}\]</div>
                 <p>若 \(|A|&lt;\epsilon\)，三角形退化，直接跳过。否则除以极小面积会产生巨大坐标和 NaN，
-                后续属性插值与深度写入都会失去意义。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个像素中心的三个重心坐标</h2><p>取屏幕三角形 \(a=(2,2)\)、\(b=(8,2)\)、\(c=(2,7)\)，
+                后续属性插值与深度写入都会失去意义。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">10.5 · 数值算例</div><div class="prose"><h2>一个像素中心的三个重心坐标</h2><p>取屏幕三角形 \(a=(2,2)\)、\(b=(8,2)\)、\(c=(2,7)\)，
                 待测像素中心 \(p=(3.5,2.5)\)。边函数面积为：</p>
                 <div class="formula">\[A=E(a,b,c)=(8-2)(2-2)-(7-2)(8-2)=-30.\]</div>
                 <p>三个子面积比为：</p>
@@ -82,7 +82,7 @@
                 <p>三者都非负且和为 1，因此像素被覆盖。用它们重建 \(p\)：
                 \(0.65a+0.25b+0.10c=(3.5,2.5)\)，与原始像素中心一致。</p>
                 <div class="callout"><strong>边界规则：</strong>当 \(\lambda\) 恰好为 0，点在三角形边上。
-                相邻三角形共享边时，需要统一采用 top-left 等规则，避免同一条边被重复光栅化。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>最小三角形覆盖循环</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                相邻三角形共享边时，需要统一采用 top-left 等规则，避免同一条边被重复光栅化。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">10.6 · 伪代码与实现映射</div><div class="prose"><h2>最小三角形覆盖循环</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>const area = edge(a, b, c);
 if (Math.abs(area) &lt; 1e-12) return;
 
@@ -97,24 +97,24 @@ for (let y = minY; y &lt; maxY; y += 1) {
   }
 }</code></pre></div>
                 <p>RenderTorch 的 <code>rasterize_triangle</code> 使用 NumPy 批量计算整个包围盒，
-                并用 <code>-1e-6</code> 容差处理共享边。这个容差很实用，但不等同于严格的 top-left 规则。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>覆盖、裁剪与退化</h2><details><summary>问题 1：为什么不能先除以 w 再裁剪？</summary>
+                并用 <code>-1e-6</code> 容差处理共享边。这个容差很实用，但不等同于严格的 top-left 规则。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">10.7 · 自测</div><div class="prose"><h2>覆盖、裁剪与退化</h2><details><summary>问题 1：为什么不能先除以 w 再裁剪？</summary>
                 <p><strong>答案：</strong>相机背后或近平面外的点可能得到错误符号，且除法会破坏齐次空间中用于求交的线性关系。</p></details>
                 <details><summary>问题 2：包围盒内的像素一定被三角形覆盖吗？</summary>
                 <p><strong>答案：</strong>不一定。包围盒只是候选范围，三个角上的像素常常在三角形外。</p></details>
                 <details><summary>问题 3：面积接近零时为什么应直接跳过？</summary>
-                <p><strong>答案：</strong>面积比会放大数值误差，退化成线段或点的三角形没有稳定内部区域。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>三角形消失、裂缝与重复边</h2><ol class="debug-list"><li><strong>整个三角形消失：</strong>检查裁剪平面的内外符号、\(w\) 的正负和视口 y 翻转。</li>
+                <p><strong>答案：</strong>面积比会放大数值误差，退化成线段或点的三角形没有稳定内部区域。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">10.8 · 常见错误与调试</div><div class="prose"><h2>三角形消失、裂缝与重复边</h2><ol class="debug-list"><li><strong>整个三角形消失：</strong>检查裁剪平面的内外符号、\(w\) 的正负和视口 y 翻转。</li>
                 <li><strong>三角形巨大：</strong>检查是否漏掉近裁剪，或把齐次坐标误当作 NDC。</li>
                 <li><strong>边缘双缝：</strong>检查共享边是否被两个面同时写入，以及是否使用统一 top-left 规则。</li>
                 <li><strong>像素偏移：</strong>检查是否使用像素中心 \(x+0.5,y+0.5\)，而不是整数角点。</li>
                 <li><strong>NaN 扩散：</strong>在面积比、逆深度和属性除法前检查退化与零分母。</li></ol>
-                <p>最小复现应当只有 1 个三角形和 1 个像素。先打印 \(A\)、三个 \(\lambda\) 和像素中心，再逐步加入裁剪与深度。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前裁剪与光栅化实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验允许拖动三个顶点和探针点，
+                <p>最小复现应当只有 1 个三角形和 1 个像素。先打印 \(A\)、三个 \(\lambda\) 和像素中心，再逐步加入裁剪与深度。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">10.9 · 实现状态</div><div class="prose"><h2>当前裁剪与光栅化实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验允许拖动三个顶点和探针点，
                 实时显示边函数面积、重心坐标和覆盖结果，并可把三角形拖成退化状态。</p>
                 <p><span class="status-pill">现有 RenderTorch</span>
                 <code>renderer/clipping.py</code> 在六个齐次平面上裁剪多边形；
                 <code>renderer/pipeline.py</code> 把裁剪后的多边形扇形成三角形；
                 <code>renderer/rasterizer.py</code> 使用包围盒、像素中心和边函数覆盖率测试。</p>
                 <p><span class="status-pill">后续实现路线</span> 当前共享边使用 <code>-1e-6</code> 容差，
-                尚未实现严格 top-left 规则、保守光栅化和 MSAA。增加这些功能前，应先固定共享边的覆盖契约。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/clipping.py"><span>renderer/clipping.py</span><small>现有实现：六个齐次裁剪平面与多边形交点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：包围盒、边函数与像素中心</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：裁剪多边形扇形成三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="raster-demo" data-demo="raster-demo"><h3>边函数、像素中心与三角形覆盖</h3><p>拖动顶点或探针点，查看面积、重心坐标、覆盖状态与退化保护。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter09.html"><small>← 上一章</small>场景、模型文件、场景图与包围体</a><a href="chapter11.html"><small>下一章 →</small>重心坐标、属性插值、深度与遮挡</a></nav></article>
+                尚未实现严格 top-left 规则、保守光栅化和 MSAA。增加这些功能前，应先固定共享边的覆盖契约。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">10.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/clipping.py"><span>renderer/clipping.py</span><small>现有实现：六个齐次裁剪平面与多边形交点</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：包围盒、边函数与像素中心</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：裁剪多边形扇形成三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">10.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="raster-demo" data-demo="raster-demo"><h3>边函数、像素中心与三角形覆盖</h3><p>拖动顶点或探针点，查看面积、重心坐标、覆盖状态与退化保护。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter09.html"><small>← 上一章</small>场景、模型文件、场景图与包围体</a><a href="chapter11.html"><small>下一章 →</small>重心坐标、属性插值、深度与遮挡</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

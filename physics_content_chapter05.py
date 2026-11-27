@@ -1,0 +1,317 @@
+"""第五章：PBD，直接修正位置。正文、推导与实验均为本教材原创。"""
+
+CHAPTER = (
+    5,
+    "physics05",
+    "单元二：物体为什么保持形状",
+    "PBD：直接修正位置",
+    "先把自由质点预测到新位置，再沿距离约束方向做逆质量加权投影；用迭代与 Gauss–Seidel 顺序处理耦合，并用位置差重建速度。",
+    (
+        "区分力驱动的位置预测与约束驱动的位置修正",
+        "写出距离约束、约束误差、梯度与单次投影公式",
+        "解释逆质量、固定点和刚度小于 1 时修正量如何变化",
+        "用最大相对约束误差检查迭代收敛，并比较约束处理顺序",
+        "说明速度重建、拖拽参考位置以及浏览器实验与当前 Python 实现的边界",
+    ),
+    ("第四章的弹簧与固定点", "牛顿第二定律", "向量、单位方向与平方根", "比值和迭代"),
+    (
+        (
+            "force-vs-position",
+            "两种更新",
+            "力推动速度，约束直接修正位置",
+            r"""
+<p><strong>先回忆第四章。</strong>弹簧力通过牛顿第二定律改变速度，速度再通过积分改变位置。这条路线可以写成</p>
+\[
+\mathbf v\leftarrow\mathbf v+\frac{\mathbf F}{m}\Delta t,
+\qquad
+\mathbf p\leftarrow\mathbf p+\mathbf v\Delta t.
+\]
+<p>位置约束法（Position Based Dynamics，简称 PBD）仍然需要外力预测，但它不把“绳子必须保持长度”当作一根很硬的弹簧。预测之后，PBD 检查约束还差多少，并<strong>直接移动位置</strong>去减少这个差距。</p>
+<p><strong>一次运输更新的分工。</strong>先用速度、重力和时间步预测自由质点的位置；再反复投影距离约束；最后用修正前后的位置差重建速度。力预测回答“没有约束时质点会去哪”，位置投影回答“哪些位置不允许”。</p>
+<p><strong>这不是忽略力学。</strong>重力仍决定下落趋势，质量仍决定谁更容易被推动。PBD 改变的是满足约束的方式：它先得到预测位置，再求解一组位置方程，而不是用极大的弹簧力间接逼近同一组方程。</p>
+<p><strong>模型边界。</strong>本章的距离约束理想化为无质量线段，只限制两端距离。真实绳子还有弯曲、阻尼、摩擦与材料细节，不能由一条距离约束全部代表。</p>
+<p><strong>本节小结：</strong>先预测，再投影，最后重建速度；位置修正不等于额外施加一个弹簧力。</p>
+""",
+        ),
+        (
+            "distance-constraint",
+            "约束方程",
+            "距离约束：当前长度与静止长度的差",
+            r"""
+<p>设质点 \(a,b\) 的位置分别为 \(\mathbf p_a,\mathbf p_b\)，它们之间线段的静止长度为 \(L_0\)。定义差向量、当前长度和约束函数：</p>
+\[
+\Delta\mathbf p=\mathbf p_b-\mathbf p_a,
+\qquad
+L=\lVert\Delta\mathbf p\rVert,
+\qquad
+C=\lVert\mathbf p_b-\mathbf p_a\rVert-L_0=L-L_0.
+\]
+<p>\(C=0\) 表示距离正好；\(C>0\) 表示被拉长；\(C&lt;0\) 表示被压缩。PBD 的目标是找到一组位置，使每个约束的 \(C\) 足够接近零。</p>
+<p><strong>误差要有统一尺度。</strong>米制误差不能直接比较不同长度的线段。本章与当前 Python <code>physics/cloth/pbd.py</code> 一致，使用最大相对约束误差：</p>
+\[
+E=\max_j\frac{|C_j|}{L_{0,j}}
+=\max_j\frac{|L_j-L_{0,j}|}{L_{0,j}}.
+\]
+<p>这个值没有单位，越小越好。\(L_0=0\) 时比值没有定义，因此实现必须检查静止长度为正且有限，不能制造一个看似有限的假误差。</p>
+<p><strong>绳子示例。</strong><code>pbd-rope</code> 把八个质点排成七段，每段 \(L_0=0.35\,\mathrm m\)，左右端点固定。初始误差为零；重力预测后误差增大，投影再把它减小。</p>
+<p><strong>本节小结：</strong>约束函数是可计算的几何差距，最大相对误差是可比较的收敛指标。</p>
+""",
+        ),
+        (
+            "constraint-gradient",
+            "修正方向",
+            "梯度：指出约束值增长最快的方向",
+            r"""
+<p>高中几何中，单位方向 \(\mathbf n=\Delta\mathbf p/L\) 沿两点连线。对距离函数求梯度，可以得到</p>
+\[
+\nabla_a C=-\mathbf n,
+\qquad
+\nabla_b C=\mathbf n.
+\]
+<p>可以把梯度理解为“轻轻移动这个质点，约束值变化最快的方向”。把 \(b\) 沿 \(\mathbf n\) 移远，长度增大，所以 \(C\) 增大；把 \(a\) 沿 \(\mathbf n\) 移远，长度减小，所以 \(C\) 减小。两个梯度方向相反，大小都是 1，因为 \(\mathbf n\cdot\mathbf n=1\)。</p>
+<p><strong>为什么修正沿这条线。</strong>要改变两端距离，最直接的方向就是两端连线。若拉长，\(C>0\)，应让 \(a\) 向 \(b\) 移动、让 \(b\) 向 \(a\) 移动；若压缩，符号反过来。梯度正好提供这两个方向。</p>
+<p><strong>零长度要单独处理。</strong>两点重合时 \(L=0\)，单位方向没有定义，不能随手取一个方向假装求解成功。共享核心在距离过小或两端都固定时返回未改变的新对象；Demo 会检查结果是否有限并暂停异常状态。</p>
+<p><strong>本节小结：</strong>梯度把“约束写错了多少”翻译成“每个质点该往哪里修”。</p>
+""",
+        ),
+        (
+            "projection",
+            "单次投影",
+            "一次投影：用逆质量分配修正量",
+            r"""
+<p>设 \(a,b\) 的逆质量分别为 \(w_a,w_b\)，刚度系数为 \(\alpha\in[0,1]\)。定义沿连线的修正向量</p>
+\[
+\Delta\mathbf p_{\mathrm{corr}}
+=\alpha\frac{C}{w_a+w_b}\mathbf n.
+\]
+<p>然后更新位置：</p>
+\[
+\mathbf p_a'\leftarrow\mathbf p_a+w_a\Delta\mathbf p_{\mathrm{corr}},
+\qquad
+\mathbf p_b'\leftarrow\mathbf p_b-w_b\Delta\mathbf p_{\mathrm{corr}}.
+\]
+<p>当 \(\alpha=1\) 且两端都能自由移动时，一次投影就满足这条距离约束。若 \(\alpha&lt;1\)，只修正差距的一部分，重复投影通常能继续减小误差，但耦合约束之间仍可能需要多轮。</p>
+<p><strong>共享接口。</strong><code>RTPhysics.projectDistance(a,b,restLength,stiffness=1)</code> 返回新的 <code>{a,b}</code>，不修改输入对象。质点状态使用 <code>{x,y,vx,vy,w}</code>。浏览器概念实验 <code>pbd-rope</code> 每轮按约束顺序调用这个接口，并把返回的新位置写回数组。</p>
+<p><strong>默认手算。</strong>\(\mathbf p_a=(0,0)\)、\(\mathbf p_b=(3,0)\)、\(L_0=2\)、\(w_a=w_b=1\)、\(\alpha=1\)。有 \(L=3\)、\(C=1\)、\(\mathbf n=(1,0)\)，所以</p>
+\[
+\Delta\mathbf p_{\mathrm{corr}}=\frac{1}{2}(1,0)=(0.5,0),
+\qquad
+\mathbf p_a'=(0.5,0),\quad \mathbf p_b'=(2.5,0).
+\]
+<p><strong>固定端与软刚度。</strong>若 \(w_a=0\)，则 \(a\) 不动，自由端承担全部修正。若默认算例改取 \(\alpha=0.5\)，结果为 \(a=(0.25,0)\)、\(b=(2.75,0)\)；这些变体不改变上一段 \(\alpha=1\) 时的精确默认结果。</p>
+<p><strong>本节小结：</strong>投影量由误差、方向和总逆质量决定，分配由各自逆质量决定。</p>
+""",
+        ),
+        (
+            "inverse-mass",
+            "质量分配",
+            "逆质量：轻的一端移动得多",
+            r"""
+<p>约束修正的是位置，但质量仍通过逆质量影响分配。质点质量 \(m_i>0\) 时，定义</p>
+\[
+w_i=\frac1{m_i}.
+\]
+<p>\(m_i\) 越大，\(w_i\) 越小，同样大小的位置修正向量造成的位置变化越小。这个比值也常直接写成 \(w_i=1/m_i\)。把 \(a,b\) 的实际位置位移相加，可以检查这条约束内部的位置位移是否等量反向：</p>
+\[
+w_a\Delta\mathbf p_{\mathrm{corr}}
++w_b(-\Delta\mathbf p_{\mathrm{corr}})
+=(w_a-w_b)\Delta\mathbf p_{\mathrm{corr}},
+\]
+<p>只有当 \(w_a=w_b\) 时两端移动距离才相等；不能把“位置位移等量反向”误说成“任何质量下位移都相同”。在默认算例中 \(w_a=w_b=1\)，两点各移动 \(0.5\,\mathrm m\)，质心保持不动。</p>
+<p><strong>固定点用零逆质量表示。</strong>\(w=0\) 的端点不参与位置修正。若只有 \(a\) 固定，且 \(C=1\)、\(\alpha=1\)，则 \(b\) 移动完整的 \(1\,\mathrm m\)。固定点提供外部支撑，因此不必再要求两个自由端的质心守恒。</p>
+<p><strong>不要直接除以质量。</strong>若 \(m=0\)，\(1/m\) 没有意义；固定点应显式设置 \(w=0\)，而不是放入一个无限大的质量再期待数值稳定。</p>
+<p><strong>本节小结：</strong>逆质量决定修正分配，零逆质量决定固定，质量本身并不从 PBD 中消失。</p>
+""",
+        ),
+        (
+            "fixed-points",
+            "边界条件",
+            "固定点：位置与速度都不能被求解器带走",
+            r"""
+<p>绳子两端像被图钉钉住。设它们初始位置为 \(\mathbf p_{\mathrm{pin}}\)，则每个时间步都应满足</p>
+\[
+\mathbf p_{\mathrm{pin}}'=\mathbf p_{\mathrm{pin}},
+\qquad
+\mathbf v_{\mathrm{pin}}'=\mathbf 0.
+\]
+<p>仅把 \(w\) 设为零，已经能避免距离投影推动固定点；但外部积分、拖拽或状态复制仍可能错误地改变它。因此 Demo 在每次投影后显式恢复两个端点的初始坐标，并在速度重建时把端点速度设为零。</p>
+<p><strong>两端都固定怎么办。</strong>若一条约束两端都固定，\(w_a+w_b=0\)，没有任何可自由移动的位置来减少误差。求解器应保留状态并报告约束误差，不能除以零，也不能移动固定点来制造一个假解。</p>
+<p><strong>固定不是碰撞。</strong>固定点限制一个特定质点；碰撞限制物体进入某个区域。绳子 Demo 只有两个固定端，没有地面碰撞、自碰撞或弯曲约束。拖动也只接受六个中间自由质点，端点不能被拖走。</p>
+<p><strong>Python 对照。</strong><code>physics/common/state.py</code> 保存位置、速度和逆质量；<code>physics/common/simulation.py</code> 在子步投影后恢复固定点位置并清零固定点速度。本章浏览器实验遵循同样的教学原则。</p>
+<p><strong>本节小结：</strong>固定是一种显式边界条件，需要同时守住位置和速度。</p>
+""",
+        ),
+        (
+            "iteration-error",
+            "收敛与诊断",
+            "反复迭代：一条约束会破坏另一条约束",
+            r"""
+<p>对一条独立约束，\(\alpha=1\) 的一次投影已经满足它。但绳子中相邻两段共用质点：修正第二段时可能再次拉长第一段。因此需要重复扫描全部约束。</p>
+<p><strong>迭代不是复制同一结果。</strong>每一轮都必须从上一轮的最新位置重新计算 \(L,C,\mathbf n\)，再调用投影。轮数增加通常能减小误差，却不保证任意复杂系统在有限轮内精确收敛。</p>
+<p><strong>每轮都量误差。</strong>本章读数使用 \(E=\max_j |L_j-L_{0,j}|/L_{0,j}\)，并分别保存迭代前与迭代后的值。读数可以提示收敛趋势，但有限值本身不代表物理解一定正确。</p>
+<p><strong>有界控件。</strong><code>pbd-rope</code> 的迭代数为 \(1\) 到 \(40\)，刚度为 \(0\) 到 \(1\)，物理时间步为 \(1/240\) 到 \(1/60\,\mathrm s\)。若出现零长度、非有限位置或非有限速度，Demo 会暂停并提示重置，不把数值裁剪成假解。</p>
+<p><strong>刚度为零的实验。</strong>此时投影不改变位置，但重力预测和速度重建仍可观察。它适合隔离“积分造成的误差”和“投影消除的误差”。当自由质点越过画布观察下边界 \(y=2\,\mathrm m\) 时，Demo 保留越界的该物理步并暂停；这是观察视图边界，不是碰撞或地面，也不会裁剪位置。点击重置恢复观察。</p>
+<p><strong>本节小结：</strong>迭代处理耦合，最大相对误差帮助判断收敛，有限检查守住数值边界。</p>
+""",
+        ),
+        (
+            "gauss-seidel",
+            "处理顺序",
+            "Gauss–Seidel：后一条约束立即使用最新位置",
+            r"""
+<p>一轮迭代可以按不同顺序处理约束。Gauss–Seidel 的关键是：<strong>处理下一条约束之前，立即写回上一条的结果</strong>。它不是先保存一整轮的旧修正，再在最后统一相加。</p>
+<p><code>constraint-order</code> 使用三个质点、两条长度为 \(1\,\mathrm m\) 的约束。两端固定在 \((0,0)\) 与 \((2,0)\)，中点为 \((1.25,0.3)\)，逆质量为 1。三组初始状态和静止长度完全相同：</p>
+<ul>
+<li>正序：每轮先约束 0，再约束 1，记作 <code>[0,1]</code>；</li>
+<li>逆序：每轮先约束 1，再约束 0，记作 <code>[1,0]</code>；</li>
+<li>交替：每轮先执行 <code>[0,1]</code>，再执行 <code>[1,0]</code>。</li>
+</ul>
+<p><strong>第一轮手算投影。</strong>固定端与自由中点投影时，中点被移到以固定端为圆心、半径为 1 的圆上。依次计算可得：</p>
+<table><thead><tr><th>顺序</th><th>第一轮中点（m）</th><th>第一轮最大相对误差</th></tr></thead><tbody>
+<tr><td>正序</td><td>\((1.024831188,0.221462838)\)</td><td>\(0.048486888\)</td></tr>
+<tr><td>逆序</td><td>\((0.944855500,0.327487531)\)</td><td>\(0.104797718\)</td></tr>
+<tr><td>交替</td><td>\((0.977438250,0.211221371)\)</td><td>\(0.044148936\)</td></tr>
+</tbody></table>
+<p>正序与逆序的中点明显不同，所以差异来自真实投影顺序，不是预设动画。交替第一轮等于先正序再逆序。随着迭代增加，三组结果通常越来越接近；读数列出三种顺序的最终中点坐标和最终最大相对误差。</p>
+<p><strong>操作方式。</strong>Demo 默认暂停。改变初始水平偏移或迭代数会重建三组相同初始状态；每次播放或单步推进一轮，最多到达所选迭代数。水平偏移保持非对称，避免用对称特例掩盖顺序效应。</p>
+<p><strong>本节小结：</strong>Gauss–Seidel 的顺序是数值路径的一部分；公平比较必须固定初始状态、约束与轮数。</p>
+""",
+        ),
+        (
+            "velocity-reconstruction",
+            "从位置回到速度",
+            "速度重建：投影后的位移才是下一帧速度",
+            r"""
+<p>投影直接改变位置。如果继续使用投影前的速度，下一帧就会“忘记”位置刚被修正，可能反复拉伸或注入能量。PBD 在投影后按自由质点重建速度：</p>
+\[
+\mathbf v_i'\leftarrow
+\frac{\mathbf p_i'-\mathbf p_i^{\mathrm{before}}}{\Delta t}.
+\]
+<p>这里 \(\mathbf p_i^{\mathrm{before}}\) 是本物理步积分与投影之前的位置，\(\mathbf p_i'\) 是本步投影后的位置。这个差包含重力预测和约束修正的共同效果。</p>
+<p><strong>绳子的一步。</strong>自由质点先执行 \(\mathbf v\leftarrow\mathbf v+\mathbf g\Delta t\)，再执行 \(\mathbf p\leftarrow\mathbf p+\mathbf v\Delta t\)，其中 \(\mathbf g=(0,9.81)\,\mathrm{m/s^2}\)，画布向下为正。随后投影若干轮，最后用上式重建速度；两个固定端点始终恢复初始坐标并保持零速度。</p>
+<p><strong>两种时间步。</strong>共享 UI 仍按 \(1/60\,\mathrm s\) 运输调度；绳子控件选择的是<strong>实际积分与投影的物理 \(\Delta t\)</strong>，模拟时间也按这个 \(\Delta t\) 累加。默认 \(\Delta t=1/120\,\mathrm s\)，因此共享界面的一次单步只推进 \(1/120\,\mathrm s\) 物理时间，并非偷偷使用四个子步。</p>
+<p><strong>拖拽不能制造速度。</strong>拖动中点时先把该点速度清零，并把它当前被拖动的位置作为下一步的投影前参考。否则 \((p_{\mathrm{after}}-p_{\mathrm{before}})/\Delta t\) 会把鼠标位移误当成巨大速度。</p>
+<p><strong>Python 对照。</strong><code>physics/common/simulation.py</code> 同样保存投影前位置，并用位置差除以实际子步长重建速度。当前 Python 默认 <code>fixed_dt=1/120</code>、<code>substeps=2</code>，每个子步为 \(1/240\,\mathrm s\)。</p>
+<p><strong>本节小结：</strong>速度来自修正前后的真实位移，拖动参考位置必须与积分参考一致。</p>
+""",
+        ),
+        (
+            "worked-example",
+            "把投影算到底",
+            "算例：把两点投影到指定距离",
+            r"""
+<p><strong>题目。</strong>两个质点 \(a=(0,0)\)、\(b=(3,0)\)，逆质量 \(w_a=w_b=1\)，速度先设为零。距离约束 \(L_0=2\)，刚度 \(\alpha=1\)。求一次投影后的位置与新长度。</p>
+<p><strong>第一步，算几何量。</strong></p>
+\[
+\Delta\mathbf p=(3,0),\qquad L=3,\qquad \mathbf n=(1,0),\qquad C=3-2=1.
+\]
+<p><strong>第二步，算总权重与修正量。</strong></p>
+\[
+w_a+w_b=2,
+\qquad
+\Delta\mathbf p_{\mathrm{corr}}
+=1\times\frac{1}{2}\times(1,0)=(0.5,0).
+\]
+<p><strong>第三步，按逆质量分配。</strong></p>
+\[
+a'=a+w_a\Delta\mathbf p_{\mathrm{corr}}=(0.5,0),
+\qquad
+b'=b-w_b\Delta\mathbf p_{\mathrm{corr}}=(2.5,0).
+\]
+<p><strong>第四步，代回约束检查。</strong></p>
+\[
+L'=\lVert(2.5,0)-(0.5,0)\rVert=2,
+\qquad C'=0,
+\qquad E=\frac{|0|}{2}=0.
+\]
+<p>因此默认结果为 \(a=(0.5,0)\)、\(b=(2.5,0)\)。这正是共享核心的真实返回值，也是本章固定不变的默认算例。</p>
+<p><strong>固定点变体。</strong>若 \(w_a=0,w_b=1\)，分母变为 \(w_a+w_b=1\)，修正量为 \((1,0)\)。\(a\) 乘以零后保持 \((0,0)\)，\(b\) 移动完整的 \(1\) 到 \((2,0)\)，新长度正好为 \(2\)，相对误差为零。固定端不移动，全部修正由自由端承担。</p>
+<p><strong>刚度小于 1 的变体。</strong>若 \(w_a=w_b=1\)、\(\alpha=0.5\)，修正量为 \((0.25,0)\)，所以 \(a=(0.25,0)\)、\(b=(2.75,0)\)，新长度 \(2.5\)，相对误差 \(0.25\)。重复相同投影可继续缩短差距。这个变体用于解释软刚度，不改变前面的精确默认结果。</p>
+<p><strong>本节小结：</strong>先算 \(L,C,\mathbf n\)，再算修正量，最后分配并代回检查。</p>
+""",
+        ),
+        (
+            "pseudocode-debugging",
+            "可检查的实现",
+            "伪代码与调试：让每次修正都有据可查",
+            r"""
+<p><strong>绳子伪代码。</strong>共享 UI 的单步调用进入下列物理步，实际步长由控件提供：</p>
+<pre><code>before[i] = position[i]              # 拖拽后先取当前参考
+for each free particle i:
+    velocity[i] += gravity * dt
+    position[i] += velocity[i] * dt
+error_before = maxRelativeDistanceError()
+repeat iterations times:
+    for each distance constraint (a, b, L0):
+        pair = RTPhysics.projectDistance(a, b, L0, stiffness)
+        position[a] = pair.a
+        position[b] = pair.b
+restore both fixed endpoints and zero their velocities
+error_after = maxRelativeDistanceError()
+for each free particle i:
+    velocity[i] = (position[i] - before[i]) / dt
+time += dt</code></pre>
+<p><strong>顺序实验伪代码。</strong>三组状态必须从同一个初始数组独立复制；每轮立即写回投影结果：</p>
+<pre><code>initial = sameInitialState()
+forward = clone(initial)
+reverse = clone(initial)
+alternating = clone(initial)
+repeat selected_iterations times:
+    forward = sweep(forward, [0, 1])
+    reverse = sweep(reverse, [1, 0])
+    alternating = sweep(alternating, [0, 1])
+    alternating = sweep(alternating, [1, 0])
+measure each group's maximum relative error and middle position</code></pre>
+<table><thead><tr><th>症状</th><th>优先检查</th><th>最小动作</th></tr></thead><tbody>
+<tr><td>修正后两端移动相同</td><td>是否把等量反向的位置修正误认为等位移</td><td>核对 \(w_a,w_b\) 与质量</td></tr>
+<tr><td>固定点漂移</td><td>逆质量非零，或投影后没有恢复</td><td>检查固定点位置与零速度</td></tr>
+<tr><td>绳子越跑越快</td><td>速度未重建，或拖拽参考仍是旧位置</td><td>核对 before 与拖动后的参考</td></tr>
+<tr><td>增加轮数误差不降</td><td>约束冲突、刚度过低或公式有误</td><td>逐条打印 \(C_j\) 与 \(E\)</td></tr>
+<tr><td>三种顺序结果相同</td><td>初始状态被共享，或使用对称特例</td><td>独立复制状态并使用非对称偏移</td></tr>
+<tr><td>读数 NaN / Infinity</td><td>零长度、非有限状态或错误时间步</td><td>暂停并重置，不裁剪成假解</td></tr>
+</tbody></table>
+<p><strong>浏览器与 Python 的边界。</strong>本章两个浏览器概念实验使用 JavaScript 双精度浮点，适合观察投影方向、顺序与收敛。当前 Python <code>physics/cloth/pbd.py</code> 使用 <code>float32</code> 张量，并为结构（structural）、剪切（shear）、弯曲（bend）三类距离约束设置不同刚度；它按几何约束顺序执行多轮 Gauss–Seidel 投影，并计算最大相对约束误差。<code>physics/common/simulation.py</code> 默认 <code>fixed_dt=1/120</code>、<code>substeps=2</code>。</p>
+<p>因此不能要求浏览器与 Python 逐位相同。浏览器中的八点绳子是位置投影概念实验，<strong>不是生产引擎</strong>，也没有照搬 Python 布片的全部约束、碰撞器或应用集成。</p>
+<p><strong>本章小结：</strong>PBD 用约束误差驱动位置修正，用逆质量分配修正，用迭代和顺序处理耦合，再用位置差重建速度。</p>
+""",
+        ),
+    ),
+    (
+        (
+            "pbd-rope",
+            "八点绳子的距离投影",
+            "demos/physics09.js",
+            "默认暂停；两端固定，中点可拖拽。调节迭代数、刚度与物理时间步，比较迭代前后最大相对约束误差并检查速度重建。",
+            "projection",
+        ),
+        (
+            "constraint-order",
+            "三质点 Gauss–Seidel 顺序比较",
+            "demos/physics10.js",
+            "默认暂停；相同初始状态分别执行正序、逆序与交替投影。每次单步推进一轮，对照中点坐标与最大相对约束误差。",
+            "gauss-seidel",
+        ),
+    ),
+    (
+        (
+            "physics/cloth/pbd.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/pbd.py",
+            "当前 Python 实现：结构、剪切、弯曲距离约束的 Gauss–Seidel 位置投影，以及最大相对约束误差；float32 张量。",
+        ),
+        (
+            "physics/common/simulation.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py",
+            "当前 Python 实现：默认 fixed_dt=1/120、substeps=2，重力预测、固定点恢复与投影后速度重建。",
+        ),
+        (
+            "physics/common/state.py",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/state.py",
+            "当前 Python 实现：ParticleState 保存位置、速度与逆质量，并提供复制、重置和动能计算。",
+        ),
+        (
+            "book/assets/physics-core.js",
+            "https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/book/assets/physics-core.js",
+            "浏览器共享数值核心：projectDistance 按逆质量加权返回新的 a、b；本章概念实验使用 JavaScript 双精度。",
+        ),
+    ),
+)

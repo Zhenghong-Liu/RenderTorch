@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>参数曲面与细分</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html" aria-current="page"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 08 / 15 · 二、几何建模</p><h1>参数曲面与细分</h1><p class="lede">把一维曲线扩展为双参数曲面，用采样和细分生成可渲染网格。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>写出双参数曲面并计算采样点</li><li>用有限差分估计曲面法线并解释细分</li></ol><p><strong>先验知识：</strong>第 7 章的参数曲线、第 6 章的法线。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">把一条曲线沿另一个方向铺开</div><div class="prose"><h2>双参数曲面与可渲染网格</h2><p>曲线只有一个参数 \(u\)，曲面需要两个参数 \(u,v\)。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 08 / 15 · 二、几何建模</p><h1>参数曲面与细分</h1><p class="lede">把一维曲线扩展为双参数曲面，用采样和细分生成可渲染网格。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">8.1 学习目标</a><a href="#intuition">8.2 把一条曲线沿另一个方向铺开</a><a href="#definitions">8.3 符号与定义</a><a href="#derivation">8.4 逐步推导</a><a href="#example">8.5 数值算例</a><a href="#pseudocode">8.6 伪代码与实现映射</a><a href="#self-test">8.7 自测</a><a href="#debugging">8.8 常见错误与调试</a><a href="#status">8.9 实现状态</a><a href="#sources">8.10 源码映射</a><a href="#demo">8.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">8.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>写出双参数曲面并计算采样点</li><li>用有限差分估计曲面法线并解释细分</li></ol><p><strong>先验知识：</strong>第 7 章的参数曲线、第 6 章的法线。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">8.2 · 把一条曲线沿另一个方向铺开</div><div class="prose"><h2>双参数曲面与可渲染网格</h2><p>曲线只有一个参数 \(u\)，曲面需要两个参数 \(u,v\)。
                 固定 \(v\)，沿 \(u\) 方向得到一条曲线；固定 \(u\)，沿 \(v\) 方向得到另一条曲线。
                 两组曲线交织成一张连续表面。</p>
                 <p>渲染器不能直接绘制“连续曲面”，必须先把参数区域采样为有限个顶点，
@@ -31,7 +31,7 @@
                 <path d="M100 180L555 135M340 240L310 75" fill="none" stroke="#c66b35" stroke-width="2"/>
                 <text x="375" y="265" fill="#854721">u</text><text x="300" y="55" fill="#854721">v</text>
                 <text x="78" y="205">S(0,1)</text><text x="325" y="275">S(1,1)</text><text x="565" y="145">S(1,0)</text><text x="295" y="60">S(0,0)</text>
-                </svg><p><strong>图 8.1</strong>　参数矩形被采样为网格。图中网格是拓扑结构，实际曲面可以弯曲。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>张量积曲面、采样与法线</h2><p>给定两个方向上的控制网格 \(\mathbf P_{ij}\)，可用 Bernstein 基构造张量积 Bézier 曲面：</p>
+                </svg><p><strong>图 8.1</strong>　参数矩形被采样为网格。图中网格是拓扑结构，实际曲面可以弯曲。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">8.3 · 符号与定义</div><div class="prose"><h2>张量积曲面、采样与法线</h2><p>给定两个方向上的控制网格 \(\mathbf P_{ij}\)，可用 Bernstein 基构造张量积 Bézier 曲面：</p>
                 <div class="formula">\[S(u,v)=\sum_{i=0}^{m}\sum_{j=0}^{n}
                 B_i^m(u)B_j^n(v)\mathbf P_{ij}.\]</div>
                 <p>当两个方向都只有两个控制点时，就是双线性曲面：
@@ -42,7 +42,7 @@
                 \mathbf S_v=\frac{\partial S}{\partial v},\qquad
                 \mathbf n=\operatorname{normalize}(\mathbf S_u\times\mathbf S_v).\]</div>
                 <p>如果偏导数为零，该点是奇异点，法线无法由这个公式定义。
-                这与三角形面积为 0 的情况类似：几何本身没有可用的局部朝向。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从解析偏导到有限差分</h2><p>对双线性曲面直接求偏导：</p>
+                这与三角形面积为 0 的情况类似：几何本身没有可用的局部朝向。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">8.4 · 逐步推导</div><div class="prose"><h2>从解析偏导到有限差分</h2><p>对双线性曲面直接求偏导：</p>
                 <div class="formula">\[\begin{aligned}
                 \mathbf S_u&=(1-v)(\mathbf P_{10}-\mathbf P_{00})
                 +v(\mathbf P_{11}-\mathbf P_{01}),\\
@@ -60,7 +60,7 @@
                 因而计数从 \((V,F)=(4,1)\) 变为 \((9,4)\)：</p>
                 <div class="formula">\[V' = V+E+F,\qquad F'=4F.\]</div>
                 <p>这里没有移动旧顶点，所以只是几何加密，不是 Loop 或 Catmull–Clark 的平滑细分。
-                对双线性曲面，边中点加密能更好地逼近原曲面，但角点处的折痕仍由三角形近似决定。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>双线性曲面中心点与法线</h2><p>取四个三维控制点：</p>
+                对双线性曲面，边中点加密能更好地逼近原曲面，但角点处的折痕仍由三角形近似决定。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">8.5 · 数值算例</div><div class="prose"><h2>双线性曲面中心点与法线</h2><p>取四个三维控制点：</p>
                 <div class="formula">\[\begin{aligned}
                 \mathbf P_{00}&=(0,0,0),&\mathbf P_{10}&=(2,0,0),\\
                 \mathbf P_{01}&=(0,1,0),&\mathbf P_{11}&=(2,1,1).
@@ -73,7 +73,7 @@
                 <p>叉积得到：</p>
                 <div class="formula">\[\mathbf S_u\times\mathbf S_v=(-0.5,-1,2).\]</div>
                 <p>归一化前不必先强行把法线长度变成 1；叉积方向已经正确，
-                光照使用时再归一化即可。反转参数方向或控制点顺序都会改变法线符号。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>采样、差分和边中点细分</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                光照使用时再归一化即可。反转参数方向或控制点顺序都会改变法线符号。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">8.6 · 伪代码与实现映射</div><div class="prose"><h2>采样、差分和边中点细分</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>function bilinear(p, u, v) {
   const a = lerpPoint(p[0][0], p[1][0], u);
   const b = lerpPoint(p[0][1], p[1][1], u);
@@ -87,22 +87,22 @@ const normal = normalize(cross(du, dv));
 
 const midpointAB = lerpPoint(a, b, 0.5);</code></pre></div>
                 <p>实际网格还需要记录哪些边中点是共享的。若每个面独立创建边中点，
-                相邻面之间会出现 T 型接缝；正确的一层细分通常先建立边到中点的映射。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>参数方向、细分与法线</h2><details><summary>问题 1：固定 u，S(u,v) 是什么？</summary>
+                相邻面之间会出现 T 型接缝；正确的一层细分通常先建立边到中点的映射。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">8.7 · 自测</div><div class="prose"><h2>参数方向、细分与法线</h2><details><summary>问题 1：固定 u，S(u,v) 是什么？</summary>
                 <p><strong>答案：</strong>一条沿 \(v\) 方向的参数曲线。</p></details>
                 <details><summary>问题 2：一次边中点细分后，原来 1 个四边形变成几个三角形？</summary>
                 <p><strong>答案：</strong>4 个，同时得到 4 个边中点和 1 个中心点。</p></details>
                 <details><summary>问题 3：如果 S_u 与 S_v 平行，会发生什么？</summary>
-                <p><strong>答案：</strong>叉积为零，参数映射发生退化，局部法线无法定义。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>曲面褶皱、裂缝和法线跳动</h2><ol class="debug-list"><li><strong>采样出现交叉：</strong>检查控制点顺序是否形成自交参数网格，或 UV 方向是否互换。</li>
+                <p><strong>答案：</strong>叉积为零，参数映射发生退化，局部法线无法定义。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">8.8 · 常见错误与调试</div><div class="prose"><h2>曲面褶皱、裂缝和法线跳动</h2><ol class="debug-list"><li><strong>采样出现交叉：</strong>检查控制点顺序是否形成自交参数网格，或 UV 方向是否互换。</li>
                 <li><strong>细分出现裂缝：</strong>确认相邻面共享边中点，而不是各自计算后得到不同顶点。</li>
                 <li><strong>法线正反随机：</strong>检查 \(u,v\) 参数方向与面绕序是否一致。</li>
                 <li><strong>极点闪烁：</strong>检查奇异点，并在极点使用显式法线规则。</li>
-                <li><strong>差分误差大：</strong>打印 \(h\)、两个切向量和叉积长度，区分几何退化与数值误差。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>细分概念实验与当前参数曲面能力</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验显示 \(2\times2\) 双线性控制网格、
+                <li><strong>差分误差大：</strong>打印 \(h\)、两个切向量和叉积长度，区分几何退化与数值误差。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">8.9 · 实现状态</div><div class="prose"><h2>细分概念实验与当前参数曲面能力</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验显示 \(2\times2\) 双线性控制网格、
                 一次边中点细分、采样点、解析切向量和有限差分法线，并核对顶点与面计数。</p>
                 <p><span class="status-pill">现有 RenderTorch</span>
                 <code>core/primitives.py</code> 的球体通过经纬采样直接生成三角网格，
                 但没有独立 Bézier 曲面求值器、UV 属性或通用细分器。</p>
                 <p><span class="status-pill">后续实现路线</span> 可增加统一网格结构、边邻接表、
-                参数曲面采样和带属性共享的一层细分；之后再考虑 Loop/Catmull–Clark 等不同细分方案。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：球体经纬采样与三角面连接</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：三角网格资源，无 UV 与法线属性</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="surface-demo" data-demo="surface-demo"><h3>双线性曲面采样与一次细分</h3><p>改变 u/v，比较解析切向量与有限差分，并查看一次细分前后的网格计数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter07.html"><small>← 上一章</small>参数曲线：Bézier、B-spline 与 NURBS 概念</a><a href="chapter09.html"><small>下一章 →</small>场景、模型文件、场景图与包围体</a></nav></article>
+                参数曲面采样和带属性共享的一层细分；之后再考虑 Loop/Catmull–Clark 等不同细分方案。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">8.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：球体经纬采样与三角面连接</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：三角网格资源，无 UV 与法线属性</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">8.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="surface-demo" data-demo="surface-demo"><h3>双线性曲面采样与一次细分</h3><p>改变 u/v，比较解析切向量与有限差分，并查看一次细分前后的网格计数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter07.html"><small>← 上一章</small>参数曲线：Bézier、B-spline 与 NURBS 概念</a><a href="chapter09.html"><small>下一章 →</small>场景、模型文件、场景图与包围体</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
