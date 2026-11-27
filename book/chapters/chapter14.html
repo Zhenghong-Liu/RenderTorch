@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>阴影、gamma 与色调映射</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html" aria-current="page"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 14 / 15 · 四、光照与完整渲染</p><h1>阴影、gamma 与色调映射</h1><p class="lede">用阴影贴图比较光源空间深度，并在线性颜色与显示颜色之间正确转换。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释 shadow mapping 的两次渲染和深度偏移</li><li>区分 gamma 编码与 Reinhard 色调映射</li></ol><p><strong>先验知识：</strong>第 12 章的光照、第 11 章的深度缓冲。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">阴影与显示变换</div><div class="prose"><h2>一个判断可见性，一个决定如何上屏</h2><p>阴影不是把表面整体调暗，而是询问：从当前表面点走向光源的路径上，是否有更近的物体？
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 14 / 15 · 四、光照与完整渲染</p><h1>阴影、gamma 与色调映射</h1><p class="lede">用阴影贴图比较光源空间深度，并在线性颜色与显示颜色之间正确转换。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">14.1 学习目标</a><a href="#intuition">14.2 阴影与显示变换</a><a href="#definitions">14.3 符号与定义</a><a href="#derivation">14.4 逐步推导</a><a href="#example">14.5 数值算例</a><a href="#pseudocode">14.6 伪代码与源码映射</a><a href="#self-test">14.7 自测</a><a href="#debugging">14.8 常见错误与调试</a><a href="#status">14.9 实现状态</a><a href="#sources">14.10 源码映射</a><a href="#demo">14.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">14.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释 shadow mapping 的两次渲染和深度偏移</li><li>区分 gamma 编码与 Reinhard 色调映射</li></ol><p><strong>先验知识：</strong>第 12 章的光照、第 11 章的深度缓冲。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">14.2 · 阴影与显示变换</div><div class="prose"><h2>一个判断可见性，一个决定如何上屏</h2><p>阴影不是把表面整体调暗，而是询问：从当前表面点走向光源的路径上，是否有更近的物体？
                  shadow mapping 把这个问题转换成两次渲染：先从光源视角记录最近深度，再从相机视角比较深度。</p>
                 <p>着色器计算出的颜色通常在线性空间，可能大于 1，也不等于人眼感知的显示亮度。
                 上屏前需要控制高光不过曝，并做 gamma 显示变换。阴影与显示变换属于两个独立问题，
@@ -34,12 +34,12 @@
                 <text x="324" y="252">相机视图：比较深度</text>
                 <rect x="500" y="55" width="105" height="34" fill="#263943"/><rect x="500" y="101" width="105" height="34" fill="#8aa1a5"/><rect x="500" y="147" width="105" height="34" fill="#f6f3eb"/>
                 <text x="498" y="214">线性 → 色调映射 → gamma</text>
-                </svg><p><strong>图 14.1</strong>　阴影图先回答“是否被挡住”，显示变换再回答“这个亮度如何呈现”。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>光源深度、bias 与线性颜色</h2><p>设光源相机为观察者，\(d_{\mathrm{map}}(u_s,v_s)\) 是 shadow map 中记录的最小光空间距离，
+                </svg><p><strong>图 14.1</strong>　阴影图先回答“是否被挡住”，显示变换再回答“这个亮度如何呈现”。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">14.3 · 符号与定义</div><div class="prose"><h2>光源深度、bias 与线性颜色</h2><p>设光源相机为观察者，\(d_{\mathrm{map}}(u_s,v_s)\) 是 shadow map 中记录的最小光空间距离，
                 \(d_{\mathrm{frag}}\) 是当前表面点的光空间距离。两者必须使用同一投影、同一坐标约定和同一单位。</p>
                 <p>深度偏移 \(b\ge0\) 用来抵消浮点误差与离散阴影图的深度量化。
                 设阴影可见因子 \(\xi\in[0,1]\)，\(\xi=1\) 表示受光，\(\xi=0\) 表示完全遮挡。</p>
                 <p>设曝光为 \(E\)，色调映射函数为 \(T\)，gamma 近似指数为 \(\gamma=2.2\)。
-                线性颜色可以超过 1，显示颜色必须最终落在 \([0,1]\)。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>shadow mapping、Reinhard 与 gamma</h2><p><strong>第一步：光源深度Pass。</strong> 把相机放在光源处，
+                线性颜色可以超过 1，显示颜色必须最终落在 \([0,1]\)。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">14.4 · 逐步推导</div><div class="prose"><h2>shadow mapping、Reinhard 与 gamma</h2><p><strong>第一步：光源深度Pass。</strong> 把相机放在光源处，
                 渲染场景深度但不写颜色。每个阴影图像素保留最近物体距离：</p>
                 <div class="formula">\[d_{\mathrm{map}}=\min_{\text{覆盖样本}} d_{\mathrm{light}}.\]</div>
                 <p><strong>第二步：相机颜色Pass。</strong> 把当前表面点变换到同一光源空间，
@@ -60,7 +60,7 @@
                 \operatorname{clamp}(\mathbf C_{\mathrm{reinhard}}^{1/2.2},0,1).\]</div>
                 <p>代码中可写成 <code>C_linear^(1/2.2)</code> 与 <code>C_reinhard</code>。
                 必须先色调映射再 gamma；顺序交换会改变高光滚动与中间调亮度。
-                 gamma 2.2 是教学近似，严格 sRGB 使用分段传递函数。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>高光压缩与阴影比较</h2><p>某像素未遮挡时线性颜色为 \((0.5,0.5,0.5)\)，被遮挡后 Direct 项乘以 \(\xi=0\)。
+                 gamma 2.2 是教学近似，严格 sRGB 使用分段传递函数。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">14.5 · 数值算例</div><div class="prose"><h2>高光压缩与阴影比较</h2><p>某像素未遮挡时线性颜色为 \((0.5,0.5,0.5)\)，被遮挡后 Direct 项乘以 \(\xi=0\)。
                 若仍有环境光 \((0.1,0.1,0.1)\)，两像素会分别保留受光与阴影差异。</p>
                 <p>取线性值 \(C=2\)，曝光 \(E=1\)。直接 gamma 会得到 \(2^{1/2.2}\approx1.366\)，随后被 clamp 成纯白；
                 先 Reinhard 则得到：</p>
@@ -68,7 +68,7 @@
                 \mathbf C_{\mathrm{display}}\approx\left(\frac23\right)^{1/2.2}\approx0.821.\]</div>
                 <p>这样高于 1 的高光仍保留亮度层次，而不是全部截断为白色。</p>
                 <p>阴影比较例：\(d_{\mathrm{map}}=4.0\)、\(d_{\mathrm{frag}}=4.02\)、\(b=0.01\)。
-                因为 \(4.02&gt;4.01\)，该样本被遮挡；把 bias 调到 0.03 后变为受光，可清楚观察 bias 的作用。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与源码映射</div><div class="prose"><h2>阴影可见性与显示输出</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                因为 \(4.02&gt;4.01\)，该样本被遮挡；把 bias 调到 0.03 后变为受光，可清楚观察 bias 的作用。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">14.6 · 伪代码与源码映射</div><div class="prose"><h2>阴影可见性与显示输出</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>const lightDepth = sampleShadowMap(lightUv);
 const visible = fragDepth &lt;= lightDepth + bias ? 1 : 0;
 const litLinear = ambient + direct * visible;
@@ -77,25 +77,25 @@ const reinhard = exposed / (1 + exposed);
 const display = reinhard.map((channel) =&gt; Math.pow(Math.max(0, channel), 1 / 2.2));
 framebuffer.color[pixel] = clamp(display, 0, 1);</code></pre></div>
                 <p>RenderTorch 的 <code>FrameBuffer</code> 只有一份颜色、一份相机深度和物体编号，
-                没有光源深度 Pass，也没有在线性 HDR 缓冲上执行色调映射。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>深度比较与输出顺序</h2><details><summary>问题 1：为什么 shadow map 不能直接用相机深度缓冲？</summary>
+                没有光源深度 Pass，也没有在线性 HDR 缓冲上执行色调映射。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">14.7 · 自测</div><div class="prose"><h2>深度比较与输出顺序</h2><details><summary>问题 1：为什么 shadow map 不能直接用相机深度缓冲？</summary>
                 <p><strong>答案：</strong>阴影需要从光源视角记录遮挡关系，相机视角无法回答“光源是否看得见该点”。</p></details>
                 <details><summary>问题 2：bias 过小和过大分别有什么症状？</summary>
                 <p><strong>答案：</strong>过小出现 shadow acne；过大出现阴影脱离物体的 peter panning。</p></details>
                 <details><summary>问题 3：Reinhard 的作用是什么？</summary>
                 <p><strong>答案：</strong>把无上界的线性 HDR 颜色平滑压缩到有限显示范围，同时保留高光层次。</p></details>
                 <details><summary>问题 4：应该先 gamma 还是先 Reinhard？</summary>
-                <p><strong>答案：</strong>先在线性空间曝光和色调映射，最后做 gamma 显示编码。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>自阴影、漏光与灰蒙蒙</h2><ol class="debug-list"><li><strong>表面全是条纹：</strong>检查 shadow map 分辨率、斜率 bias 和光源空间变换。</li>
+                <p><strong>答案：</strong>先在线性空间曝光和色调映射，最后做 gamma 显示编码。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">14.8 · 常见错误与调试</div><div class="prose"><h2>自阴影、漏光与灰蒙蒙</h2><ol class="debug-list"><li><strong>表面全是条纹：</strong>检查 shadow map 分辨率、斜率 bias 和光源空间变换。</li>
                 <li><strong>阴影悬空：</strong>bias 或法线偏移过大。</li>
                 <li><strong>移动光源时阴影不动：</strong>检查光源视图矩阵与 shadow map 是否同步更新。</li>
                 <li><strong>高光全白：</strong>在线性 HDR 中保留大于 1 的值，先 Reinhard 再 gamma。</li>
                 <li><strong>中间调太暗：</strong>检查是否在线性空间提前 clamp，或遗漏 gamma 显示变换。</li></ol>
-                <p>调试阴影时先把所有材质设为无高光纯色，再检查 PCF，最后恢复光照细节。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前阴影与颜色管理状态</h2><p><span class="status-pill">浏览器概念实验</span> 本章在 CPU 上生成小型 shadow map，
+                <p>调试阴影时先把所有材质设为无高光纯色，再检查 PCF，最后恢复光照细节。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">14.9 · 实现状态</div><div class="prose"><h2>当前阴影与颜色管理状态</h2><p><span class="status-pill">浏览器概念实验</span> 本章在 CPU 上生成小型 shadow map，
                 用 depth bias 比较方块与球的遮挡，并显示线性、Reinhard 和 gamma 后颜色。</p>
                 <p><span class="status-pill">现有 RenderTorch</span> <code>renderer/framebuffer.py</code>
                 直接保存 8 位 RGBA 与相机深度；<code>renderer/pipeline.py</code> 每帧只做相机投影和逐面着色。
                 当前没有 shadow map、HDR 颜色缓冲、曝光、色调映射或 gamma 输出。</p>
                 <p><span class="status-pill">后续实现路线</span> 光源视图矩阵 → 光源深度 Pass →
-                bias/PCF → 线性 HDR framebuffer → 曝光与 Reinhard → gamma/sRGB 编码。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span><small>现有实现：RGBA、相机深度和物体编号，无 HDR</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：相机空间深度与直接着色，无阴影 Pass</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/compute/projection.py"><span>compute/projection.py</span><small>现有实现：透视与视口投影，可复用到光源视图</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="shadow-demo" data-demo="shadow-demo"><h3>CPU 阴影图与显示变换</h3><p>移动光源观察 shadow map 与遮挡同步变化，比较线性、Reinhard 和 gamma 后颜色。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter13.html"><small>← 上一章</small>纹理、UV 与透视矫正</a><a href="chapter15.html"><small>下一章 →</small>光线追踪与完整渲染管线比较</a></nav></article>
+                bias/PCF → 线性 HDR framebuffer → 曝光与 Reinhard → gamma/sRGB 编码。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">14.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/framebuffer.py"><span>renderer/framebuffer.py</span><small>现有实现：RGBA、相机深度和物体编号，无 HDR</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：相机空间深度与直接着色，无阴影 Pass</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/compute/projection.py"><span>compute/projection.py</span><small>现有实现：透视与视口投影，可复用到光源视图</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">14.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="shadow-demo" data-demo="shadow-demo"><h3>CPU 阴影图与显示变换</h3><p>移动光源观察 shadow map 与遮挡同步变化，比较线性、Reinhard 和 gamma 后颜色。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter13.html"><small>← 上一章</small>纹理、UV 与透视矫正</a><a href="chapter15.html"><small>下一章 →</small>光线追踪与完整渲染管线比较</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

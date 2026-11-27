@@ -17,6 +17,7 @@ class DemoSpec:
     title: str
     script: str
     description: str
+    section_id: str = ""
 
 
 @dataclass(frozen=True)

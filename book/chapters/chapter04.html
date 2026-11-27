@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>相机、视图、投影与视口</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html" aria-current="page"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 04 / 15 · 一、像素与数学</p><h1>相机、视图、投影与视口</h1><p class="lede">把三维点经过视图、透视投影和视口变换送到屏幕像素。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释轨道相机、近远裁剪面与 NDC</li><li>从相机坐标推导屏幕像素坐标</li></ol><p><strong>先验知识：</strong>第 3 章的齐次变换、基础三角函数。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">从世界中的一个点到屏幕上的一个位置</div><div class="prose"><h2>相机把三维空间压缩到二维图像</h2><p>模型坐标描述物体自身，世界坐标描述整个场景，相机坐标描述“从相机看过去”的位置。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 04 / 15 · 一、像素与数学</p><h1>相机、视图、投影与视口</h1><p class="lede">把三维点经过视图、透视投影和视口变换送到屏幕像素。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">4.1 学习目标</a><a href="#intuition">4.2 从世界中的一个点到屏幕上的一个位置</a><a href="#definitions">4.3 符号与定义</a><a href="#derivation">4.4 逐步推导</a><a href="#example">4.5 数值算例</a><a href="#pseudocode">4.6 伪代码与实现映射</a><a href="#self-test">4.7 自测</a><a href="#debugging">4.8 常见错误与调试</a><a href="#status">4.9 实现状态</a><a href="#sources">4.10 源码映射</a><a href="#demo">4.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">4.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释轨道相机、近远裁剪面与 NDC</li><li>从相机坐标推导屏幕像素坐标</li></ol><p><strong>先验知识：</strong>第 3 章的齐次变换、基础三角函数。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">4.2 · 从世界中的一个点到屏幕上的一个位置</div><div class="prose"><h2>相机把三维空间压缩到二维图像</h2><p>模型坐标描述物体自身，世界坐标描述整个场景，相机坐标描述“从相机看过去”的位置。
 把相机放在原点、视线朝向 −z，很多计算会变得简单，因此渲染器先用视图变换把世界点搬到相机空间。</p>
 <p>相机空间仍不是屏幕。透视投影让远处的物体看起来更小，把视锥体变成规则裁剪体。
 随后除以 w 得到 NDC，再通过视口变换映射到实际像素。整条链路是：</p>
@@ -35,7 +35,7 @@
 <path d="M390 150h95" stroke="#c66b35" stroke-width="3" marker-end="url(#arrow-a)"/>
 <rect x="505" y="95" width="105" height="105" rx="8" fill="#132832"/><circle cx="557" cy="148" r="8" fill="#9ed9d0"/>
 <text x="90" y="40">视图</text><text x="310" y="40">投影</text><text x="505" y="230">视口</text>
-</svg><p><strong>图 4.1</strong>　每个阶段只做一件事；调试时可以分别检查各阶段坐标。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>轨道相机与视锥参数</h2><p>轨道相机由眼睛位置 E、观察目标 C、世界上方向 U、垂直视场角 f 和宽高比 a 描述。
+</svg><p><strong>图 4.1</strong>　每个阶段只做一件事；调试时可以分别检查各阶段坐标。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">4.3 · 符号与定义</div><div class="prose"><h2>轨道相机与视锥参数</h2><p>轨道相机由眼睛位置 E、观察目标 C、世界上方向 U、垂直视场角 f 和宽高比 a 描述。
 本章所有方向都先归一化。</p>
 <div class="formula">\[\begin{aligned}
 \mathbf f&=\operatorname{normalize}(\mathbf C-\mathbf E)
@@ -67,7 +67,7 @@ f/a&0&0&0\\
 0&0&-1&0
 \end{pmatrix},\\
 f&=\frac{1}{\tan(\mathrm{vertical\_fov}/2)}. &&
-\end{aligned}\]</div></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从裁剪坐标推导 NDC 与像素</h2><p>设视图空间点为 \((x_v,y_v,z_v)\)，相机看向 −z，因此前方点满足
+\end{aligned}\]</div></div></section><section class="section chapter-section" id="derivation"><div class="section-label">4.4 · 逐步推导</div><div class="prose"><h2>从裁剪坐标推导 NDC 与像素</h2><p>设视图空间点为 \((x_v,y_v,z_v)\)，相机看向 −z，因此前方点满足
 \(z_v&lt;0\)。投影后：</p>
 <div class="formula">\[\begin{aligned}
 x_{\mathrm{clip}}&=(f/a)x_v, & y_{\mathrm{clip}}&=fy_v, \\
@@ -88,7 +88,7 @@ x_{\mathrm{pixel}}&=\frac{(x_{\mathrm{ndc}}+1)W}{2},\\
 y_{\mathrm{pixel}}&=\frac{(1-y_{\mathrm{ndc}})H}{2}.
 \end{aligned}\]</div>
 <p>注意 y 前的负号：NDC 向上，图像 y 向下。
-深度 z_ndc 并不随距离线性变化，这就是为什么光栅化需要深度缓冲和透视矫正插值。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>把一个相机前方点映射到屏幕</h2><p>取 \(W=512\)、\(H=256\)、垂直 fov=60°，
+深度 z_ndc 并不随距离线性变化，这就是为什么光栅化需要深度缓冲和透视矫正插值。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">4.5 · 数值算例</div><div class="prose"><h2>把一个相机前方点映射到屏幕</h2><p>取 \(W=512\)、\(H=256\)、垂直 fov=60°，
 相机位于 \((0,0,5)\) 并看向原点。此时
 \(\mathrm{aspect}=2\)、\(f=1/\tan30^\circ=\sqrt{3}\approx1.732\)。</p>
 <p>世界点 \(\mathbf p=(1,0,0)\) 的视图坐标是 \((1,0,-5)\)：</p>
@@ -102,7 +102,7 @@ y_{\mathrm{pixel}}&=128.
 <p>这个点位于画面中心右侧约 44.34 像素处。
 若相机后退到 z=10，同一世界点的 x_ndc 约减半，屏幕位置会更靠近中心，这正是透视效果。</p>
 <div class="callout"><strong>近裁剪检查：</strong> 位于相机平面上或相机背后的点不能直接做透视除法，
-必须先做齐次裁剪，否则 w≤0 会破坏投影。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>按阶段实现投影函数</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 列向量管线</span><button class="copy-button" type="button" data-copy>复制</button></div>
+必须先做齐次裁剪，否则 w≤0 会破坏投影。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">4.6 · 伪代码与实现映射</div><div class="prose"><h2>按阶段实现投影函数</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 列向量管线</span><button class="copy-button" type="button" data-copy>复制</button></div>
 <pre><code>def look_at(eye, target, up):
     forward = normalize(target - eye)
     right = normalize(cross(forward, up))
@@ -123,24 +123,24 @@ def project_to_pixel(point, view, projection, width, height):
     y = (1 - ndc[1]) * height / 2
     return x, y, ndc[2]</code></pre></div>
 <p>RenderTorch 的 <code>Projection</code> 已包含透视矩阵和屏幕变换矩阵；
-相机矩阵由旋转矩阵乘平移矩阵得到。阅读源码时要把本章列向量公式与项目的张量排列逐项对照。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>检查视图、投影和视口方向</h2><details><summary>问题 1：为什么视口变换中 y 前面有负号？</summary>
+相机矩阵由旋转矩阵乘平移矩阵得到。阅读源码时要把本章列向量公式与项目的张量排列逐项对照。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">4.7 · 自测</div><div class="prose"><h2>检查视图、投影和视口方向</h2><details><summary>问题 1：为什么视口变换中 y 前面有负号？</summary>
 <p><strong>答案：</strong>NDC 的 y 向上，图像像素 y 向下，需要翻转。</p></details>
 <details><summary>问题 2：物体远离相机时，投影大小通常怎样变化？</summary>
 <p><strong>答案：</strong>在固定 fov 下，x_ndc 和 y_ndc 的绝对值减小，因此屏幕尺寸变小。</p></details>
 <details><summary>问题 3：相机背后的点为什么不能只做一次透视除法？</summary>
-<p><strong>答案：</strong>其 w_clip≤0，直接除法会得到错误的坐标或符号，必须先裁剪。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>沿变换链逐段排查</h2><ol class="debug-list"><li><strong>检查相机位置：</strong>视图变换后，眼睛应恰好位于原点。</li>
+<p><strong>答案：</strong>其 w_clip≤0，直接除法会得到错误的坐标或符号，必须先裁剪。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">4.8 · 常见错误与调试</div><div class="prose"><h2>沿变换链逐段排查</h2><ol class="debug-list"><li><strong>检查相机位置：</strong>视图变换后，眼睛应恰好位于原点。</li>
 <li><strong>检查视线：</strong>观察目标应位于相机前方，即视图 z 为负。</li>
 <li><strong>检查 up：</strong>不要把世界上方向直接当相机右向；右向由前向与 up 的叉积得到。</li>
 <li><strong>检查宽高比：</strong>垂直 fov 固定时，x 投影应除以 aspect，否则画面被拉伸。</li>
 <li><strong>检查像素原点：</strong>若内容上下颠倒，优先检查视口 y 符号。</li>
-<li><strong>检查近远平面：</strong>单位、交换 n/far 或使用 DirectX 深度范围都会造成错误遮挡。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>浏览器相机实验与真实源码分层</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验用轨道相机参数实时计算 lookAt、
+<li><strong>检查近远平面：</strong>单位、交换 n/far 或使用 DirectX 深度范围都会造成错误遮挡。</li></ol></div></section><section class="section chapter-section" id="status"><div class="section-label">4.9 · 实现状态</div><div class="prose"><h2>浏览器相机实验与真实源码分层</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验用轨道相机参数实时计算 lookAt、
 透视投影和像素坐标，并在二维画布中显示世界点与投影位置。它是数学演示，不是完整三维渲染器。</p>
 <p><span class="status-pill">现有 RenderTorch</span>
 <code>viewing/camera.py</code> 提供相机位置、偏航/俯仰控制和相机矩阵；
 <code>viewing/projection.py</code> 提供透视投影与屏幕变换；
 <code>renderer/pipeline.py</code> 将这些矩阵用于顶点管线。</p>
 <p><span class="status-pill">后续实现路线</span> 下一单元将把变换后的三角形送入裁剪与光栅化，
-并在此基础上解释覆盖、深度和属性插值。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/camera.py"><span>viewing/camera.py</span><small>现有实现：相机与 look-at 方向</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/projection.py"><span>viewing/projection.py</span><small>现有实现：透视与视口矩阵</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：顶点变换管线</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="camera-demo" data-demo="camera-demo"><h3>轨道相机与投影链</h3><p>调整相机、fov 和世界点，逐步查看视图坐标、NDC 与屏幕像素。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter03.html"><small>← 上一章</small>齐次坐标与几何变换</a><a href="chapter05.html"><small>下一章 →</small>几何图元与网格表示</a></nav></article>
+并在此基础上解释覆盖、深度和属性插值。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">4.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/camera.py"><span>viewing/camera.py</span><small>现有实现：相机与 look-at 方向</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/viewing/projection.py"><span>viewing/projection.py</span><small>现有实现：透视与视口矩阵</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：顶点变换管线</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">4.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="camera-demo" data-demo="camera-demo"><h3>轨道相机与投影链</h3><p>调整相机、fov 和世界点，逐步查看视图坐标、NDC 与屏幕像素。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter03.html"><small>← 上一章</small>齐次坐标与几何变换</a><a href="chapter05.html"><small>下一章 →</small>几何图元与网格表示</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

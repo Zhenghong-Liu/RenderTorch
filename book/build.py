@@ -1,5 +1,4 @@
 import argparse
-import html
 import importlib.util
 from pathlib import Path
 import shutil
@@ -14,10 +13,16 @@ CONTENT = importlib.util.module_from_spec(SPEC)
 sys.modules[CONTENT_NAME] = CONTENT
 SPEC.loader.exec_module(CONTENT)
 
-
-def write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+LAYOUT_NAME = "rendertorch_book_layout"
+LAYOUT_SPEC = importlib.util.spec_from_file_location(LAYOUT_NAME, ROOT / "layout.py")
+LAYOUT = importlib.util.module_from_spec(LAYOUT_SPEC)
+sys.modules[LAYOUT_NAME] = LAYOUT
+LAYOUT_SPEC.loader.exec_module(LAYOUT)
+write = LAYOUT.write
+escape = LAYOUT.escape
+header = LAYOUT.header
+footer = LAYOUT.footer
+document = LAYOUT.document
 
 
 def copy_assets(output_dir: Path) -> None:
@@ -26,10 +31,6 @@ def copy_assets(output_dir: Path) -> None:
     if source.resolve() == target.resolve():
         return
     shutil.copytree(source, target, dirs_exist_ok=True)
-
-
-def escape(value: str) -> str:
-    return html.escape(value, quote=True)
 
 
 def navigation(active_slug: str = "", prefix: str = "") -> str:
@@ -64,71 +65,21 @@ def sidebar(active_slug: str = "", prefix: str = "") -> str:
     )
 
 
-def header(prefix: str = "") -> str:
-    return (
-        '<header class="site-header">'
-        f'<a class="brand" href="{prefix}index.html"><span class="brand-mark">R</span><span>RenderTorch · 图形学教材</span></a>'
-        '<span class="header-meta">PIXELS · GEOMETRY · RENDERING</span>'
-        '<button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" '
-        'aria-controls="sidebar">目录</button>'
-        "</header>"
-    )
-
-
-def footer() -> str:
-    return (
-        '<footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · '
-        '<a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>'
-    )
-
-
-def document(title: str, active_slug: str, body: str, scripts: tuple[str, ...] = (), prefix: str = "") -> str:
-    script_tags = "".join(f'<script src="{escape(path)}" defer></script>' for path in scripts)
-    return f'''<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
-  <meta name="theme-color" content="#132832">
-  <link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml">
-  <title>{escape(title)}</title>
-  <link rel="stylesheet" href="{prefix}assets/style.css">
-  <link rel="stylesheet" href="{prefix}assets/vendor/katex/katex.min.css">
-  <script src="{prefix}assets/vendor/katex/katex.min.js" defer></script>
-  <script src="{prefix}assets/vendor/katex/auto-render.min.js" defer></script>
-  <script src="{prefix}assets/book.js" defer></script>
-{script_tags}</head>
-<body>
-  <a class="skip-link" href="#main-content">跳到正文</a>
-  {header(prefix)}
-  <div class="layout">
-    {sidebar(active_slug, prefix)}
-    <main id="main-content">
-      {body}
-    </main>
-  </div>
-  {footer()}
-</body>
-</html>
-'''
-
-
-def render_section(section) -> str:
+def render_section(section, number: str) -> str:
     return (
         f'<section class="section chapter-section" id="{escape(section.id)}">'
-        f'<div class="section-label">{escape(section.label)}</div>'
+        f'<div class="section-label">{escape(number)} · {escape(section.label)}</div>'
         f'<div class="prose"><h2>{escape(section.title)}</h2>{section.html}</div>'
         "</section>"
     )
 
 
-def render_objectives(row) -> str:
+def render_objectives(row, number: str) -> str:
     objectives = "".join(f"<li>{escape(item)}</li>" for item in row.objectives)
     prerequisites = "、".join(escape(item) for item in row.prerequisites)
     return (
         '<section class="section chapter-section" id="objectives">'
-        '<div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2>'
+        f'<div class="section-label">{escape(number)} · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2>'
         f"<ol>{objectives}</ol><p><strong>先验知识：</strong>{prerequisites}。</p></div></section>"
     )
 
@@ -140,11 +91,11 @@ def render_demo_mount(demo) -> str:
     )
 
 
-def render_sources(row) -> str:
+def render_sources(row, number: str) -> str:
     if not row.sources:
         return (
             '<section class="section chapter-section" id="sources">'
-            '<div class="section-label">源码映射</div><div class="prose">'
+            f'<div class="section-label">{escape(number)} · 源码映射</div><div class="prose">'
             '<h2>概念内容与真实实现</h2><p>本章以浏览器概念实验为主；'
             'RenderTorch 当前实现的对应文件会在确实存在时列出。</p></div></section>'
         )
@@ -155,7 +106,7 @@ def render_sources(row) -> str:
     )
     return (
         '<section class="section chapter-section" id="sources">'
-        '<div class="section-label">源码映射</div><div class="prose">'
+        f'<div class="section-label">{escape(number)} · 源码映射</div><div class="prose">'
         '<h2>阅读当前项目的真实实现</h2><div class="source-grid">'
         f"{links}</div></div></section>"
     )
@@ -182,24 +133,45 @@ def render_chapter(row) -> str:
     sections = list(row.sections)
     section_ids = {section.id for section in sections}
     rendered = []
+    nav_items = []
+
+    def append_section(section_id: str, label: str, render) -> None:
+        number = len(rendered) + 1
+        rendered.append(render(f"{row.number}.{number}"))
+        nav_items.append(
+            f'<a href="#{escape(section_id)}">{row.number}.{number} {escape(label)}</a>'
+        )
+
     if "objectives" not in section_ids:
-        rendered.append(render_objectives(row))
+        append_section("objectives", "学习目标", lambda number: render_objectives(row, number))
     for section in sections:
-        rendered.append(render_section(section))
+        append_section(
+            section.id,
+            section.label,
+            lambda number, section=section: render_section(section, number),
+        )
     if "sources" not in section_ids:
-        rendered.append(render_sources(row))
+        append_section("sources", "源码映射", lambda number: render_sources(row, number))
     if row.demos:
         mounts = "".join(render_demo_mount(demo) for demo in row.demos)
         scripts = tuple(f"../assets/{demo.script}" for demo in row.demos)
     else:
         mounts = ""
         scripts = ()
-    demo_html = (
-        '<section class="section chapter-section" id="demo">'
-        '<div class="section-label">交互实验</div><div class="prose">'
-        f'<h2>让状态变化看得见</h2>{mounts}</div></section>'
+
+    def render_demo(number: str) -> str:
+        return (
+            '<section class="section chapter-section" id="demo">'
+            f'<div class="section-label">{number} · 交互实验</div><div class="prose">'
+            f'<h2>让状态变化看得见</h2>{mounts}</div></section>'
+        )
+
+    append_section("demo", "交互实验", render_demo)
+    chapter_nav = (
+        '<nav class="chapter-section-nav" aria-label="本章导航">'
+        + "".join(nav_items)
+        + "</nav>"
     )
-    rendered.append(demo_html)
     body = (
         '<article class="content">'
         '<header class="chapter-header">'
@@ -207,12 +179,20 @@ def render_chapter(row) -> str:
         f'<h1>{escape(row.title)}</h1><p class="lede">{escape(row.summary)}</p>'
         '<div class="meta-row"><span class="pill">教材式推导</span>'
         '<span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div>'
-        "</header>"
+        f"</header>{chapter_nav}"
         + "".join(rendered)
         + page_navigation(row)
         + "</article>"
     )
-    return document(row.title, row.slug, body, scripts, prefix="../")
+    return document(
+        row.title,
+        body,
+        scripts,
+        prefix="../",
+        sidebar_html=sidebar(row.slug, "../"),
+        header_html=header("RenderTorch · 图形学教材", "../", has_sidebar=True),
+        footer_html=footer("RenderTorch · 从像素到物理的中文交互教材"),
+    )
 
 
 def render_index(all_chapters=None) -> str:
@@ -240,11 +220,23 @@ def render_index(all_chapters=None) -> str:
         '逐步推导相机、网格、光栅化、材质、阴影与光线追踪。</p>'
         '<a class="primary-link" href="chapters/chapter01.html">从第 1 章开始 →</a>'
         '</section>'
+        '<section class="section" id="subbooks"><div class="section-label">两本子书</div>'
+        '<div class="prose"><h2>选择你的学习路径</h2>'
+        '<p>从图形学理解画面如何生成，再从物理模拟理解物体如何运动。</p></div>'
+        '<div class="subbook-grid">'
+        '<a class="subbook-card" href="chapters/chapter01.html">'
+        '<span class="subbook-number">G</span><span><strong>3D 图形学</strong>'
+        '<small>15 章：像素、向量、相机、光栅化、光照与光线追踪。</small></span></a>'
+        '<a class="subbook-card" href="physics/index.html">'
+        '<span class="subbook-number">P</span><span><strong>物理模拟</strong>'
+        '<small>10 章、20 个互动实验：从运动、力与积分出发，逐步进入约束、碰撞和软体。</small></span></a>'
+        '</div></section>'
         '<section class="section" id="overview"><div class="section-label">学习路线</div>'
         '<div class="prose"><h2>先建立共同语言，再替换渲染方法</h2>'
         '<p>全书 15 章分为四个单元。每章都从直觉开始，给出符号定义、逐步推导、'
         '数值算例、伪代码和可操作实验；现有 Python 实现与浏览器概念实验会明确分层。</p>'
-        '<p>本阶段先重建 3D 图形学子书。质点弹簧、PBD、XPBD 等物理子书将在图形学内容发布后另行重构。</p>'
+        '<p>完成 3D 图形学后，可继续阅读 10 章物理模拟子书：从质点运动、积分与质量弹簧，'
+        '逐步进入 PBD、XPBD、碰撞、刚体、布料与软体，并通过 20 个互动实验验证概念。</p>'
         '</div></section>'
         + "".join(units)
         + '<section class="section" id="references"><div class="section-label">开放许可优先</div>'
@@ -253,7 +245,42 @@ def render_index(all_chapters=None) -> str:
         '不复制商业教材或论文插图。<a href="references.html">查看参考资料与许可边界。</a></p>'
         '</div></section></div>'
     )
-    return document("从像素到物理 · RenderTorch 图形学教材", "index", body)
+    return document(
+        "从像素到物理 · RenderTorch 图形学教材",
+        body,
+        sidebar_html=sidebar("index"),
+        header_html=header("RenderTorch · 图形学教材", has_sidebar=True),
+        footer_html=footer("RenderTorch · 从像素到物理的中文交互教材"),
+    )
+
+
+def render_physics_placeholder() -> str:
+    body = (
+        '<article class="content"><header class="chapter-header">'
+        '<p class="eyebrow">Physics · 中文交互物理教材</p>'
+        '<h1>从真实运动，到数字状态</h1>'
+        '<p class="lede">物理子书将围绕运动、力、积分、约束、碰撞与软体展开，'
+        '沿用可推导、可操作和可验证的教材结构。</p>'
+        '<div class="meta-row"><span class="pill">内容建设中</span>'
+        '<span class="pill">共享页面布局</span></div></header>'
+        '<section class="section"><div class="prose">'
+        '<h2>先继续阅读图形学</h2><p>物理章节将在后续任务中陆续加入；'
+        '现在可以从像素与三维数学开始，建立两本子书共同需要的基础。</p>'
+        '<p><a href="../index.html">返回总入口</a>，或'
+        '<a href="../chapters/chapter01.html">从图形学第 1 章开始</a>。</p>'
+        '</div></section></article>'
+    )
+    return document(
+        "物理模拟 · RenderTorch 教材",
+        body,
+        prefix="../",
+        header_html=header(
+            "RenderTorch · 物理模拟教材",
+            "../",
+            meta="PARTICLES · CONSTRAINTS · DYNAMICS",
+        ),
+        footer_html=footer("RenderTorch · 从像素到物理的中文交互教材"),
+    )
 
 
 def render_references() -> str:
@@ -280,12 +307,21 @@ def render_references() -> str:
         '<li>后续如复用开放许可素材，必须在页面保留作者、来源和许可链接。</li>'
         '</ul></div></section></article>'
     )
-    return document("参考资料与许可 · RenderTorch 图形学教材", "references", body)
+    return document(
+        "参考资料与许可 · RenderTorch 图形学教材",
+        body,
+        sidebar_html=sidebar("references"),
+        header_html=header("RenderTorch · 图形学教材", has_sidebar=True),
+        footer_html=footer("RenderTorch · 从像素到物理的中文交互教材"),
+    )
 
 
 def build(output_dir: Path) -> None:
     output_dir = Path(output_dir)
     write(output_dir / "index.html", render_index())
+    home = output_dir / "physics" / "index.html"
+    if not home.exists():
+        write(home, render_physics_placeholder())
     write(output_dir / "references.html", render_references())
     for row in CONTENT.chapters():
         write(output_dir / "chapters" / f"{row.slug}.html", render_chapter(row))
@@ -297,4 +333,4 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=ROOT)
     args = parser.parse_args()
     build(args.output)
-    print(f"Built 17 pages in {args.output.resolve()}")
+    print(f"Built 18 pages in {args.output.resolve()}")

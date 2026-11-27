@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import unquote
 import html
 
 
@@ -143,6 +144,37 @@ console.log(`Rendered ${formulas.length} LaTeX formulas`);
         self.assertNotIn('href="chapters/chapters/', chapter)
         self.assertNotIn('href="chapters/index.html"', chapter)
 
+    def test_chapters_have_numbered_sections_and_in_chapter_navigation(self):
+        page = (self.output / "chapters" / "chapter01.html").read_text(encoding="utf-8")
+        self.assertIn('class="chapter-section-nav"', page)
+        self.assertIn("1.1", page)
+        self.assertIn("1.2", page)
+        self.assertIn('href="#intuition"', page)
+
+    def test_home_links_to_physics_subbook(self):
+        home = (self.output / "index.html").read_text(encoding="utf-8")
+        self.assertIn('href="physics/index.html"', home)
+        self.assertIn("10 章", home)
+        self.assertIn("20 个互动实验", home)
+        self.assertNotIn("物理子书将在图形学内容发布后另行重构", home)
+
+    def test_physics_placeholder_uses_single_column_without_sidebar_controls(self):
+        page = (self.output / "physics" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('class="layout single-column"', page)
+        css = (BOOK_DIR / "assets" / "style.css").read_text(encoding="utf-8")
+        self.assertRegex(
+            css,
+            r"\.layout\.single-column\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)",
+        )
+        self.assertNotIn('id="sidebar"', page)
+        self.assertNotIn("data-menu-toggle", page)
+
+    def test_shared_header_supports_subbook_metadata(self):
+        physics = (self.output / "physics" / "index.html").read_text(encoding="utf-8")
+        home = (self.output / "index.html").read_text(encoding="utf-8")
+        self.assertIn("PARTICLES · CONSTRAINTS · DYNAMICS", physics)
+        self.assertIn("PIXELS · GEOMETRY · RENDERING", home)
+
     def test_navigation_and_accessibility_markers_exist(self):
         home = (self.output / "index.html").read_text(encoding="utf-8")
         chapter = (self.output / "chapters" / "chapter01.html").read_text(encoding="utf-8")
@@ -158,15 +190,116 @@ class AssetParser(HTMLParser):
         super().__init__()
         self.links = []
         self.assets = []
+        self.ids = []
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
+        if "id" in values:
+            self.ids.append(values["id"])
         if tag == "a" and "href" in values:
             self.links.append(values["href"])
         if tag in {"script", "img"} and "src" in values:
             self.assets.append(values["src"])
         if tag == "link" and "href" in values:
             self.assets.append(values["href"])
+
+
+def audit_local_references(output):
+    output = output.resolve()
+    errors = []
+    counts = {"html_file_references": 0, "html_fragments": 0, "css_dependencies": 0}
+    documents = {}
+    for page in sorted(output.rglob("*.html")):
+        parser = AssetParser()
+        parser.feed(page.read_text(encoding="utf-8"))
+        documents[page.resolve()] = parser
+
+    for page, parser in documents.items():
+        for reference in parser.links + parser.assets:
+            if reference.startswith(("https://", "http://", "mailto:", "data:", "//")):
+                continue
+            path, _, fragment = reference.partition("#")
+            if fragment:
+                counts["html_fragments"] += 1
+            path = path.split("?", 1)[0]
+            fragment = unquote(fragment)
+            target = (page.parent / path).resolve() if path else page
+            if path:
+                counts["html_file_references"] += 1
+                if not target.exists():
+                    errors.append(f"{page.relative_to(output)}: missing local target {reference!r}")
+                    continue
+            if fragment and target in documents and fragment not in documents[target].ids:
+                errors.append(
+                    f"{page.relative_to(output)}: missing fragment '#{fragment}' in "
+                    f"{target.relative_to(output)}"
+                )
+
+    css_url = re.compile(r"url\(\s*(?:(['\"])(.*?)\1|([^)]*))\s*\)", re.DOTALL)
+    for stylesheet in sorted(output.rglob("*.css")):
+        text = stylesheet.read_text(encoding="utf-8")
+        for match in css_url.finditer(text):
+            reference = (match.group(2) if match.group(2) is not None else match.group(3)).strip()
+            if not reference or reference.startswith(("data:", "http://", "https://", "//", "#")):
+                continue
+            path = reference.split("#", 1)[0].split("?", 1)[0]
+            if not path:
+                continue
+            counts["css_dependencies"] += 1
+            target = (stylesheet.parent / path).resolve()
+            if not target.exists():
+                errors.append(
+                    f"{stylesheet.relative_to(output)}: missing CSS dependency {reference!r}"
+                )
+    return errors, counts
+
+
+class LocalReferenceAuditTests(unittest.TestCase):
+    def test_audit_rejects_same_page_and_cross_page_broken_fragments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            (output / "index.html").write_text(
+                '<h1 id="present">Home</h1>'
+                '<a href="#present">same page</a>'
+                '<a href="#missing-same">broken same page</a>'
+                '<a href="chapter.html#present">cross page</a>'
+                '<a href="chapter.html#missing-other">broken cross page</a>',
+                encoding="utf-8",
+            )
+            (output / "chapter.html").write_text('<h1 id="present">Chapter</h1>', encoding="utf-8")
+
+            errors, counts = audit_local_references(output)
+
+            self.assertEqual(len(errors), 2, errors)
+            messages = "\n".join(errors)
+            self.assertIn("missing fragment '#missing-same'", messages)
+            self.assertIn("missing fragment '#missing-other'", messages)
+            self.assertEqual(counts["html_fragments"], 4)
+
+    def test_audit_rejects_missing_css_dependency_and_ignores_nonlocal_urls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            styles = output / "assets" / "styles"
+            fonts = output / "assets" / "fonts"
+            styles.mkdir(parents=True)
+            fonts.mkdir()
+            (fonts / "present.woff2").write_bytes(b"font")
+            (styles / "site.css").write_text(
+                '.font { src: url("../fonts/present.woff2"); }'
+                '.missing { background: url(../images/missing.png); }'
+                '.inline { background: url("data:image/png;base64,AA=="); }'
+                '.remote { background: url("https://example.com/image.png"); }'
+                '.remote-http { background: url(http://example.com/image.png); }'
+                '.local-fragment { filter: url(#blur); }',
+                encoding="utf-8",
+            )
+
+            errors, counts = audit_local_references(output)
+
+            self.assertEqual(len(errors), 1, errors)
+            self.assertIn("assets/styles/site.css", errors[0])
+            self.assertIn("../images/missing.png", errors[0])
+            self.assertEqual(counts["css_dependencies"], 2)
 
 
 class BuiltSiteTestCase(unittest.TestCase):
@@ -196,6 +329,40 @@ class LinkAndAssetTests(BuiltSiteTestCase):
                 self.assertTrue(target.exists(), (page, reference))
 
     def test_pages_do_not_load_external_runtime_assets(self):
+        for page in self.output.rglob("*.html"):
+            parser = AssetParser()
+            parser.feed(page.read_text(encoding="utf-8"))
+            for reference in parser.assets:
+                self.assertFalse(reference.startswith(("http://", "https://")), (page, reference))
+
+
+class FullSiteContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from book import physics_build
+
+        cls.physics_content = physics_build.CONTENT
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls.tmp.cleanup)
+        cls.output = Path(cls.tmp.name)
+        graphics_build = load_module("full_site_graphics_build", BOOK_DIR / "build.py")
+        graphics_build.build(cls.output)
+        physics_build.build(cls.output)
+
+    def test_temporary_graphics_and_physics_build_has_every_page(self):
+        expected = {"index.html", "references.html", "physics/index.html", "physics/references.html"}
+        expected.update(f"chapters/chapter{number:02d}.html" for number in range(1, 16))
+        expected.update(f"physics/chapters/{row.slug}.html" for row in self.physics_content.chapters())
+        self.assertEqual(len(expected), 29)
+        for relative in expected:
+            self.assertTrue((self.output / relative).is_file(), relative)
+
+    def test_every_full_site_local_link_and_asset_resolves(self):
+        errors, counts = audit_local_references(self.output)
+        self.assertEqual(errors, [])
+        self.assertGreater(counts["html_file_references"], 200)
+
+    def test_full_site_loads_no_external_runtime_assets(self):
         for page in self.output.rglob("*.html"):
             parser = AssetParser()
             parser.feed(page.read_text(encoding="utf-8"))

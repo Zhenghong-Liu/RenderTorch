@@ -1,0 +1,58 @@
+[
+  {
+    "group": "基础力学",
+    "title": "University Physics Volume 1",
+    "authors": "OpenStax",
+    "url": "https://openstax.org/books/university-physics-volume-1/pages/preface",
+    "license": "CC BY 4.0",
+    "usage": "只核对知识，不复制正文/图片/代码；用于牛顿力学、能量、动量与振动。"
+  },
+  {
+    "group": "约束与碰撞",
+    "title": "Physically Based Modeling, SIGGRAPH 2001 Course Notes",
+    "authors": "David Baraff, Andrew Witkin",
+    "url": "https://www.cs.cmu.edu/~baraff/sigcourse/",
+    "license": "Course notes",
+    "usage": "只核对知识，不复制正文/图片/代码；用于约束、碰撞与数值积分。"
+  },
+  {
+    "group": "约束与碰撞",
+    "title": "Foundations of Physically Based Modeling and Animation",
+    "authors": "John House, John Keyser",
+    "url": "https://books.google.com/books?vid=ISBN9781568818770",
+    "license": "Commercial publication",
+    "usage": "只核对知识，不复制正文/图片/代码；仅作商业教材的建模与动画知识参考。"
+  },
+  {
+    "group": "PBD/XPBD",
+    "title": "Position Based Dynamics",
+    "authors": "Matthias Müller et al.",
+    "url": "https://doi.org/10.1016/j.jvcir.2007.01.005",
+    "license": "Paper citation",
+    "usage": "只核对知识，不复制正文/图片/代码；用于位置投影、约束迭代与碰撞投影。"
+  },
+  {
+    "group": "PBD/XPBD",
+    "title": "XPBD: Position-Based Simulation of Compliant Constrained Dynamics",
+    "authors": "Miles Macklin et al.",
+    "url": "https://doi.org/10.1145/1399504.1360662",
+    "license": "Paper citation",
+    "usage": "只核对知识，不复制正文/图片/代码；用于柔度、拉格朗日乘子、子步与刚度控制。"
+  },
+  {
+    "group": "工程参考",
+    "title": "Matter.js Engine",
+    "authors": "Liam Brummitt",
+    "url": "https://brm.io/matter-js/docs/files/src_core_Engine.js.html",
+    "license": "MIT",
+    "usage": "只核对知识，不复制正文/图片/代码；用于固定时间步与交互流程的工程参考。"
+  },
+  {
+    "group": "工程参考",
+    "title": "Blender 物理文档",
+    "authors": "Blender Documentation Team",
+    "url": "https://docs.blender.org/manual/en/5.3/physics/cloth/introduction.html",
+    "license": "CC BY-SA 4.0",
+    "usage": "只核对知识，不复制正文/图片/代码；用于布料、软体、刚体与约束行为对照。"
+  }
+]

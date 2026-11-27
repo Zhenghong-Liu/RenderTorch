@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>XPBD：用柔度表达软硬</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
+  <script src="../assets/book.js" defer></script>
+<script src="../assets/physics-core.js" defer></script><script src="../assets/physics.js" defer></script><script src="../assets/demos/physics13.js" defer></script><script src="../assets/demos/physics14.js" defer></script></head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 物理模拟教材</span></a><span class="header-meta">PARTICLES · CONSTRAINTS · DYNAMICS</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">物理子书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">P</span><span>物理首页</span></a></li><li><a href="../chapters/physics01.html"><span class="number">01</span><span>从真实运动到数字状态</span></a></li><li><a href="../chapters/physics02.html"><span class="number">02</span><span>速度、加速度与时间积分</span></a></li><li><a href="../chapters/physics03.html"><span class="number">03</span><span>力、能量与阻尼</span></a></li><li><a href="../chapters/physics04.html"><span class="number">04</span><span>质量弹簧系统</span></a></li><li><a href="../chapters/physics05.html"><span class="number">05</span><span>PBD：直接修正位置</span></a></li><li><a href="../chapters/physics06.html"><span class="number">06</span><span>碰撞、恢复与摩擦</span></a></li><li><a href="../chapters/physics07.html" aria-current="page"><span class="number">07</span><span>XPBD：用柔度表达软硬</span></a></li><li><a href="../chapters/physics08.html"><span class="number">08</span><span>三种算法同题比较</span></a></li><li><a href="../chapters/physics09.html"><span class="number">09</span><span>刚体、旋转与地面接触</span></a></li><li><a href="../chapters/physics10.html"><span class="number">10</span><span>软体、布料与综合项目</span></a></li><li><a href="../references.html"><span class="number">R</span><span>物理参考资料</span></a></li></ol><p class="sidebar-note">先理解状态与时间，再讨论约束、碰撞和材料。</p></aside>
+    <main id="main-content">
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Physics Chapter 07 / 10 · 单元三：让求解器尊重材料与时间</p><h1>XPBD：用柔度表达软硬</h1><p class="lede">把材料软硬写成约束柔度，用有效柔度补偿子步长度，并在每个子步内累积乘子；距离与二维面积实验调用真实共享核心。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">7.1 学习目标</a><a href="#pbd-stiffness-boundary">7.2 先划清边界</a><a href="#constraint-potential">7.3 软硬的物理直觉</a><a href="#compliance">7.4 材料参数</a><a href="#effective-compliance">7.5 时间步补偿</a><a href="#multipliers">7.6 约束的反作用</a><a href="#incremental-update">7.7 核心方程</a><a href="#lambda-lifecycle">7.8 状态管理</a><a href="#distance-xpbd">7.9 距离求解</a><a href="#volume-gradient">7.10 从面积到体积</a><a href="#substep-invariance">7.11 时间步与结果</a><a href="#pseudocode-debugging">7.12 可检查的实现</a><a href="#sources">7.13 源码映射</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">7.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>区分 PBD 的投影刚度、约束势能直觉与 XPBD 的材料柔度</li><li>计算有效柔度，并完成 alpha=0.01、h=1/60 时 alpha_tilde=36 的算例</li><li>解释乘子与增量更新，正确管理每个约束的 lambda 生命周期</li><li>从距离梯度推广到二维面积梯度，再说明三维四面体体积扩展</li><li>理解近似的子步不变性，并核对浏览器概念与当前 Python 实现边界</li></ol><p><strong>先验知识：</strong>第五章的 PBD 距离投影与逆质量、约束函数与梯度、牛顿第二定律、叉积与有向面积。</p></div></section><section class="section chapter-section" id="pbd-stiffness-boundary"><div class="section-label">7.2 · 先划清边界</div><div class="prose"><h2>PBD 刚度：一次投影修正多少差距</h2>
+<p>第五章的 PBD 用位置投影直接减少约束误差。为了避免和 XPBD 的柔度符号混淆，本章把 PBD 的投影刚度记作 \(s\in[0,1]\)。对距离约束 \(C=L-L_0\)，单位方向为 \(\mathbf n=(\mathbf p_b-\mathbf p_a)/L\)，一次修正向量是</p>
+\[
+\Delta\mathbf p_{\mathrm{corr}}
+=s\frac{C}{w_a+w_b}\mathbf n,
+\qquad
+\mathbf p_a'\leftarrow\mathbf p_a+w_a\Delta\mathbf p_{\mathrm{corr}},
+\qquad
+\mathbf p_b'\leftarrow\mathbf p_b-w_b\Delta\mathbf p_{\mathrm{corr}}.
+\]
+<p>\(s=1\) 表示尽力在一次投影中满足这条约束；\(s&lt;1\) 只修正一部分。\(s\) 是<strong>无量纲的投影比例</strong>，不是“弹簧有多硬”的材料参数，也没有自动补偿时间步变化。</p>
+<p><strong>为什么不继续叫它柔度。</strong>同一个 \(s=0.5\) 在大小步长下都只修正当前差距的一半，但 XPBD 的正柔度会通过 \(h^2\) 改变实际响应。把两者混成一个旋钮，会误以为已经表达了材料与时间步的关系。</p>
+<p><strong>本节 Demo 的公平约定。</strong><code>xpbd-compliance</code> 的 PBD 一侧始终调用 <code>projectDistance(a,b,L0,1)</code>，即 \(s=1\)。不会为了迁就非零柔度而偷偷降低 PBD 刚度；只有 XPBD 一侧读取柔度控件。两侧从独立复制的相同拉伸状态出发。</p>
+<p><strong>本节小结：</strong>PBD 刚度控制单次修正比例，XPBD 柔度描述约束对变形的抵抗，二者不能互换。</p>
+</div></section><section class="section chapter-section" id="constraint-potential"><div class="section-label">7.3 · 软硬的物理直觉</div><div class="prose"><h2>约束势能：偏差越大，储能越多</h2>
+<p>弹簧的势能让我们直观看到“拉得越远，越想恢复”。对一条距离约束，可以用二次势能作为 PBD 软硬的教学直觉：</p>
+\[
+U(C)=\frac12 kC^2,
+\qquad
+\mathbf F_C=-\frac{\partial U}{\partial\mathbf p}.
+\]
+<p>当 \(C&gt;0\) 时，势能随拉伸增大；当 \(C&lt;0\) 时，势能随压缩增大。\(k\) 越大，同样偏差对应的势能越大，也越难拉伸。\(C=0\) 时势能最低。</p>
+<p><strong>势能直觉不等于 PBD 真的施加了弹簧力。</strong>PBD 在预测位置后直接投影，并不计算上式中的力再积分。真实材料还可能有非线性、阻尼、塑性或断裂，单一二次函数不能代表全部行为。</p>
+<p><strong>柔度与势能参数要分清。</strong>XPBD 使用柔度 \(\alpha\) 进入离散约束方程；不能不加推导就把本章的 \(\alpha\) 当成上式 \(k\) 的倒数。约束函数、单位、离散格式与逆质量都会影响对应关系。这里的势能只解释“为什么偏差应当受到抵抗”，不是精确能量账本。</p>
+<p><strong>诊断仍要看几何。</strong>势能是否为非负有限值，不能代替距离误差检查。本章读数直接报告约束长度、相对误差与乘子，避免用虚构的能量掩盖投影没有收敛。</p>
+<p><strong>本节小结：</strong>二次势能提供软硬直觉，但 PBD 的位置修正与 XPBD 的柔度参数仍须按各自公式理解。</p>
+</div></section><section class="section chapter-section" id="compliance"><div class="section-label">7.4 · 材料参数</div><div class="prose"><h2>柔度：越大越容易产生约束偏差</h2>
+<p>XPBD（Extended Position Based Dynamics，扩展位置约束动力学）用柔度 \(\alpha\ge0\) 表示约束对位置偏差的抵抗程度。\(\alpha=0\) 表示理想刚硬约束；\(\alpha&gt;0\) 表示允许一定偏差的较软约束。对其他条件相同的情形，柔度越大，投影后留下的偏差通常越大。</p>
+<p>柔度的单位取决于约束函数的定义。若 \(C\) 是长度，约束势能写成 \(\frac12\alpha^{-1}C^2\) 时，\(\alpha\) 可理解为该二次项的逆刚度；但本章的离散求解公式才是 Demo 实际执行的依据。</p>
+\[
+\alpha=0\quad\Longleftrightarrow\quad\text{理想刚硬约束},
+\qquad
+\alpha&gt;0\quad\Longleftrightarrow\quad\text{允许约束偏差}.
+\]
+<p><strong>它不等同于 PBD 的 \(s\)。</strong>\(s\) 限定在 \([0,1]\)，直接缩放一次位置修正；\(\alpha\) 进入乘子方程，还与子步长度 \(h\) 组合成有效柔度。把 \(s\) 调小可能只是每轮少修一点，把 \(\alpha\) 调大则改变了离散系统的材料响应。</p>
+<p><strong>本 Demo 的零柔度校验。</strong>当 \(\alpha=0\) 时，距离 XPBD 的增量公式退化为 PBD 的全刚度投影。两侧独立状态应通过真实共享核心得到相同位置与相同误差。这是接口等价检查，不是把 PBD 重新调参凑出来的结果。</p>
+<p><strong>本节小结：</strong>柔度是 XPBD 的材料参数；零柔度给出硬约束，正柔度允许偏差，且不能直接当作 PBD 刚度。</p>
+</div><div class="demo-mount physics-demo" id="xpbd-compliance" data-demo="xpbd-compliance"><h3>PBD 与 XPBD 的距离柔度对照</h3><p>浏览器概念实验；默认暂停。两侧从独立复制的相同拉伸状态出发，PBD 始终全刚度。调节柔度、子步与迭代，比较真实投影后的有效柔度、lambda、最终长度和最大相对距离误差。</p></div></section><section class="section chapter-section" id="effective-compliance"><div class="section-label">7.5 · 时间步补偿</div><div class="prose"><h2>有效柔度：把材料参数换算到当前子步</h2>
+<p>实际投影使用子步长 \(h\)，不是共享界面固定的 \(1/60\,\mathrm s\)。XPBD 在每个子步内使用有效柔度</p>
+\[
+\tilde{\alpha}=\frac{\alpha}{h^2}.
+\]
+<p>\(\alpha\) 是控件中的材料柔度，\(\tilde{\alpha}\) 是代入乘子方程的有效柔度。\(h\) 越小，\(h^2\) 越小，因此同样的 \(\alpha\) 会得到越大的 \(\tilde{\alpha}\)。这正是在补偿更短子步带来的离散尺度变化。</p>
+<p><strong>规定算例。</strong>取 \(\alpha=0.01\)、\(h=1/60\,\mathrm s\)，则</p>
+\[
+\tilde{\alpha}=\frac{0.01}{(1/60)^2}
+=0.01\times60^2
+=36.
+\]
+<p>所以题目要求的精确关系是 <code>alpha=0.01, h=1/60 → alpha_tilde=36</code>。若改为两个子步，\(h=1/120\,\mathrm s\)，则 \(\tilde{\alpha}=144\)；若四个子步，\(h=1/240\,\mathrm s\)，则 \(\tilde{\alpha}=576\)。这些数不是标签：Demo 会把它们传入真实投影并改变最终长度。</p>
+<p><strong>运输时间与物理子步。</strong>共享 UI 每次更新固定运输 \(1/60\,\mathrm s\)。若选择 \(s\) 个内子步，则每个实际子步为</p>
+\[
+h=\frac{1}{60s}\,\mathrm s,
+\qquad
+s h=\frac1{60}\,\mathrm s.
+\]
+<p>因此改变子步数不会偷偷改变一次更新推进的模拟时间，但会改变真实调用中的 \(h\)、\(\tilde{\alpha}\)、乘子重置次数与投影结果。</p>
+<p><strong>本节小结：</strong>先算 \(\tilde{\alpha}=\alpha/h^2\)，再迭代；控件柔度与实际子步长共同决定求解。</p>
+</div></section><section class="section chapter-section" id="multipliers"><div class="section-label">7.6 · 约束的反作用</div><div class="prose"><h2>乘子：记录约束为消除偏差所做的修正</h2>
+<p>投影不仅要移动位置，还要记录“这个约束当前贡献了多大修正”。XPBD 用拉格朗日乘子 \(\lambda\) 表示这份累积量。对一条距离约束，设 \(\mathbf n\) 为两端连线单位方向，则梯度为</p>
+\[
+\nabla_a C=-\mathbf n,
+\qquad
+\nabla_b C=\mathbf n.
+\]
+<p>每轮先算增量 \(\Delta\lambda\)，再更新累积乘子 \(\lambda'\leftarrow\lambda+\Delta\lambda\)。修正方向与增量相乘后，才会按逆质量分配到各质点。乘子<strong>不是直接施加给质点的力</strong>，也不是跨帧保留的弹簧冲量；它是当前子步这条约束的状态。</p>
+<p><strong>符号只是约定，但必须一致。</strong>本章遵循共享核心的符号：拉伸时 \(C&gt;0\)，从 \(\lambda=0\) 开始的 \(\Delta\lambda\) 为负，位置修正把两端拉近。若自己写公式时把 \(\Delta\mathbf p\) 的符号写反，却仍使用核心的乘子历史，结果就会来回振荡。</p>
+<p><strong>每个约束一份。</strong>多条约束不能共用一个 \(\lambda\)。当前 Python <code>physics/cloth/xpbd.py</code> 为每条距离约束保存一个乘子；<code>physics/softbody/xpbd.py</code> 还为每个四面体体积约束单独保存 <code>volume_lambdas</code>。本章距离 Demo 只有一条约束，因此只需一个当前 \(\lambda\)。</p>
+<p><strong>读数含义。</strong>“当前 lambda”是最后一个实际子步、最后一次迭代后的累积值；“最大乘子绝对值”用于观察面积约束在本步内出现过的最强修正。两者都不是跨子步累加的历史总和。</p>
+<p><strong>本节小结：</strong>乘子记录约束修正，增量更新改变乘子，每个约束必须独立保存。</p>
+</div></section><section class="section chapter-section" id="incremental-update"><div class="section-label">7.7 · 核心方程</div><div class="prose"><h2>增量更新：同时考虑当前误差与旧乘子</h2>
+<p>对距离约束，记 \(W=w_a+w_b\)。XPBD 不是每轮把 \(\lambda\) 清零，而是从上一轮的同子步乘子出发，计算</p>
+\[
+\Delta\lambda
+=\frac{-C-\tilde{\alpha}\lambda}{W+\tilde{\alpha}},
+\qquad
+\lambda'\leftarrow\lambda+\Delta\lambda.
+\]
+<p>第一项 \(-C\) 要求减少当前约束偏差；第二项 \(-\tilde{\alpha}\lambda\) 约束同一子步内乘子不要无限累积。得到增量后，位置更新为</p>
+\[
+\mathbf p_a'\leftarrow\mathbf p_a-w_a\Delta\lambda\,\mathbf n,
+\qquad
+\mathbf p_b'\leftarrow\mathbf p_b+w_b\Delta\lambda\,\mathbf n.
+\]
+<p>这个顺序对应共享接口 <code>projectDistanceXPBD(a,b,restLength,compliance,dt,lambda)</code>：它返回新的 <code>{a,b,lambda}</code>，调用者必须写回位置，并把返回的 <code>lambda</code> 传给下一次同子步迭代。</p>
+<p><strong>完整算例。</strong>取 \(\mathbf p_a=(0,0)\)、\(\mathbf p_b=(3,0)\)、\(L_0=2\)、\(w_a=w_b=1\)、\(\alpha=0.01\)、\(h=1/60\,\mathrm s\)、\(\lambda=0\)。有 \(C=1\)、\(\mathbf n=(1,0)\)、\(W=2\)、\(\tilde{\alpha}=36\)，所以</p>
+\[
+\Delta\lambda=\frac{-1-36\times0}{2+36}=-\frac1{38},
+\qquad
+\lambda'=-\frac1{38},
+\]
+\[
+\mathbf p_a'=\left(\frac1{38},0\right),
+\qquad
+\mathbf p_b'=\left(3-\frac1{38},0\right),
+\qquad
+L'=3-\frac2{38}=\frac{56}{19}\approx2.947368421.
+\]
+<p>相对误差为 \(|L'-2|/2=1/19\approx0.052631579\)。这正是共享核心一次真实投影的结果；它说明正柔度不会让第一次投影像 \(\alpha=0\) 那样精确满足距离。</p>
+<p><strong>本节小结：</strong>先算增量，再累加乘子，最后按梯度与逆质量移动位置。</p>
+</div></section><section class="section chapter-section" id="lambda-lifecycle"><div class="section-label">7.8 · 状态管理</div><div class="prose"><h2>lambda 生命周期：子步清零，迭代继承</h2>
+<p>\(\lambda\) 的生命周期比“一帧”更短。对每条约束，正确顺序是：<strong>每个实际子步开始置零；同一子步的所有迭代继承并写回；下一个子步再次置零。</strong></p>
+\[
+\lambda_j^{(s,0)}=0,
+\qquad
+\lambda_j^{(s,k+1)}
+=\lambda_j^{(s,k)}+\Delta\lambda_j^{(s,k)},
+\qquad
+\lambda_j^{(s+1,0)}=0.
+\]
+<p>这里 \(s\) 是子步编号，\(k\) 是该子步内的迭代编号。上式说明乘子只在同一子步的迭代间累积，不能把上一子步的 \(\lambda\) 带入下一子步。</p>
+<p><strong>最小伪代码。</strong></p>
+<pre><code>for each inner substep:
+    h = (1/60) / substeps
+    lambda = 0                       # 每条约束各自清零
+    repeat iterations times:
+        result = projectDistanceXPBD(a, b, L0, alpha, h, lambda)
+        a, b = result.a, result.b
+        lambda = result.lambda        # 同子步下一次迭代必须继承
+measure final length and lambda</code></pre>
+<p><strong>重建与重置。</strong>改变柔度、子步数或迭代数会重建相同初始状态，因此 \(\lambda\) 必须回到零。点击重置也回到零。面积 Demo 在用户拖动顶点后同样清零，避免旧几何的乘子被应用到用户刚替换的位置。</p>
+<p><strong>零时间步是核心接口的边界。</strong>共享距离与面积 XPBD 在 \(\Delta t=0\) 时返回克隆并保留传入的 \(\lambda\)。本章 Demo 的有效时间步始终为正，不把“接口保留”误写成“求解器应跨子步保留”。</p>
+<p><strong>非有限状态。</strong>若几何、时间步、乘子或位置出现非有限值，Demo 暂停并要求重置，不通过裁剪数值制造一个看似有限的lambda。</p>
+<p><strong>本节小结：</strong>lambda 是每条约束、每个子步的临时累积状态；清零与继承缺一不可。</p>
+</div></section><section class="section chapter-section" id="distance-xpbd"><div class="section-label">7.9 · 距离求解</div><div class="prose"><h2>距离 XPBD：从几何梯度到软硬响应</h2>
+<p>把约束误差在当前预测位置附近线性化，可以写成 \(C+\nabla C\cdot\Delta\mathbf p\approx0\)。距离约束的两个梯度大小都是 1，因此加权梯度平方和为</p>
+\[
+W=\sum_i w_i\lVert\nabla_i C\rVert^2=w_a+w_b.
+\]
+<p>结合有效柔度，就得到上一节的增量公式。\(\alpha=0\) 时，它变为 \(\Delta\lambda=-C/W\)，位置修正恰好是 PBD 的 \(s=1\) 投影；\(\alpha&gt;0\) 时，分母多出 \(\tilde{\alpha}\)，第一次修正通常较小。</p>
+<p><strong>为什么要迭代。</strong>一条独立距离约束在零柔度下投影一次即可满足，但正柔度仍需继续逼近约束方程。多个约束共用质点时，后一条约束还会改变前一条的长度，因此要重复从最新位置计算 \(C\)、\(\mathbf n\) 与 \(\Delta\lambda\)。</p>
+<p><strong>误差指标。</strong>本章使用最大相对距离误差</p>
+\[
+E=\max_j\frac{|L_j-L_{0,j}|}{L_{0,j}}.
+\]
+<p>距离 Demo 只有一条约束，因此它就是该约束的相对误差；两侧并列时再取两种方法的较大值作为总览。\(L_0=0\) 时这个比值没有定义，实现必须拒绝，不能输出一个假零误差。</p>
+<p><strong>退化与固定端。</strong>两点重合时单位方向没有定义；两端都固定时 \(W=0\)。共享核心在两点重合或两端权重之和为零时返回未改变的新对象；距离 Demo 只检查非负权重与两点不重合，当前控件不会创建两个固定端点，因此不会因双固定端而暂停。</p>
+<p><strong>本节小结：</strong>距离 XPBD 用同一梯度框架统一硬约束与软约束，并以真实迭代后的相对误差检查结果。</p>
+</div></section><section class="section chapter-section" id="volume-gradient"><div class="section-label">7.10 · 从面积到体积</div><div class="prose"><h2>体积梯度：二维四粒子面积类比</h2>
+<p><code>area-constraint</code> 是<strong>二维四粒子面积类比</strong>，不是三维体积求解器。它用四边形顶点 \(\mathbf p_0,\mathbf p_1,\mathbf p_2,\mathbf p_3\) 的有向面积约束面积，从而帮助理解体积约束使用的梯度方法。</p>
+<p>按原始顶点顺序计算鞋带公式：</p>
+\[
+A=\frac12\sum_{i=0}^{3}
+\left(x_i y_{i+1}-x_{i+1}y_i\right),
+\qquad \mathbf p_4=\mathbf p_0.
+\]
+<p>令 \(\sigma\) 为当前输入多边形的原始环绕方向符号，静止面积为 \(A_0&gt;0\)，则约束误差为 \(C=A-\sigma A_0\)。这样顺时针与逆时针不会因为一个随意硬编码的正号而被误判。共享 <code>projectAreaXPBD</code> 在每次调用中按传入顶点的当前有向面积确定 \(\sigma\)，Demo 会拒绝翻面或退化拖拽。</p>
+<p>四个顶点的面积梯度为</p>
+\[
+\begin{aligned}
+\mathbf g_0&=\left(\frac{y_1-y_3}{2},\frac{x_3-x_1}{2}\right),&
+\mathbf g_1&=\left(\frac{y_2-y_0}{2},\frac{x_0-x_2}{2}\right),\\
+\mathbf g_2&=\left(\frac{y_3-y_1}{2},\frac{x_1-x_3}{2}\right),&
+\mathbf g_3&=\left(\frac{y_0-y_2}{2},\frac{x_2-x_0}{2}\right).
+\end{aligned}
+\]
+<p>定义加权梯度平方和 \(W=\sum_i w_i\lVert\mathbf g_i\rVert^2\)，增量更新与距离约束同形：</p>
+\[
+\Delta\lambda=\frac{-C-\tilde{\alpha}\lambda}{W+\tilde{\alpha}},
+\qquad
+\lambda'\leftarrow\lambda+\Delta\lambda,
+\qquad
+\mathbf p_i'\leftarrow\mathbf p_i+w_i\Delta\lambda\,\mathbf g_i.
+\]
+<p>真实接口 <code>projectAreaXPBD(p0,p1,p2,p3,restArea,compliance,dt,lambda)</code> 返回 <code>{particles,lambda}</code>。Demo 从面积为 \(3\)、静止面积为 \(2\) 的非退化矩形出发，逐次调用它，并保留返回的 lambda 历史。拖拽会暂停、把坐标限制在有限交互区域、检查环绕方向与非零面积，再清零乘子。</p>
+<p><strong>三维扩展。</strong>把四点换成四面体四个顶点，定义有向体积</p>
+\[
+V=\frac16(\mathbf p_b-\mathbf p_a)\cdot
+\left[(\mathbf p_c-\mathbf p_a)\times(\mathbf p_d-\mathbf p_a)\right].
+\]
+<p>对每个顶点求 \(\nabla_i V\)，仍可用 \(W=\sum_iw_i\lVert\nabla_iV\rVert^2\) 构造相同的增量形式。体积是面积的三维推广，但单位、梯度与退化条件都不同，不能把二维面积 API 当作现有 Python 软体的体积实现。</p>
+<p><strong>当前实现边界。</strong>Python <code>physics/softbody/xpbd.py</code> 已有四面体体积约束；当前 Python 软体<strong>没有面积约束</strong>。本章面积 Demo 只是浏览器概念实验。重合、共线或非有限面积没有可靠梯度，Demo 会暂停并提示重置。</p>
+<p><strong>本节小结：</strong>面积与体积都通过约束梯度驱动增量投影；二维面积实验用于解释方法，不冒充现有三维能力。</p>
+</div><div class="demo-mount physics-demo" id="area-constraint" data-demo="area-constraint"><h3>二维四粒子面积约束与拖拽</h3><p>浏览器概念实验；默认暂停。调用真实 projectAreaXPBD，从可复现四边形出发，调节柔度与迭代并拖拽顶点。当前 Python 软体没有面积约束；本实验只用于理解体积梯度。</p></div></section><section class="section chapter-section" id="substep-invariance"><div class="section-label">7.11 · 时间步与结果</div><div class="prose"><h2>子步不变性：近似保持，而非逐位相等</h2>
+<p>理想情况下，固定材料柔度 \(\alpha\) 后，把同一段物理时间拆成更多子步，求解结果应大致保持接近。这是因为有效柔度按 \(\tilde{\alpha}=\alpha/h^2\) 随子步长变化，而不是让材料参数随着 UI 帧率随意漂移。</p>
+<p>本章距离 Demo 每次共享 UI 更新执行 \(s\) 个真实内子步，每个子步长 \(h=1/(60s)\)，总模拟时间始终增加 \(1/60\,\mathrm s\)。因此比较不同 \(s\) 时，应比较相同模拟时间后的长度与误差，而不是只比较调用次数。</p>
+<p><strong>为什么只是近似。</strong>实际位置投影是非线性的：每轮方向 \(\mathbf n\) 与梯度都会随位置改变；有限迭代次数、Gauss–Seidel 顺序、外力积分和约束耦合也会影响数值路径。更多子步通常让结果更接近连续极限，但不保证任意迭代数下误差单调，也不保证逐位相同。</p>
+\[
+\text{相同 }\alpha,\ \text{相同模拟时间},
+\qquad
+h\downarrow\ \Longrightarrow\ \text{结果通常更接近},
+\]
+<p>这里的箭头是近似趋势，不是严格定理。零柔度的一条独立距离约束可能很快得到相同几何解；正柔度、多条约束或面积梯度的一轮结果则可能保留可见差异。</p>
+<p><strong>怎样做公平实验。</strong>固定初始状态、约束、材料柔度与总模拟时间，只改子步数；同时观察有效柔度、最终约束误差与乘子。若发现“改子步只改标签”，应检查真实投影是否仍收到旧的 \(h\)，以及模拟时间是否被错误地乘上子步数。</p>
+<p><strong>本节小结：</strong>子步不变性依赖有效柔度补偿与正确求解，但非线性有限迭代只能给出近似一致。</p>
+</div></section><section class="section chapter-section" id="pseudocode-debugging"><div class="section-label">7.12 · 可检查的实现</div><div class="prose"><h2>伪代码与调试：让状态、时间和梯度都可复现</h2>
+<p><strong>距离对照伪代码。</strong>两侧必须独立复制，PBD 始终使用全刚度；每个子步只重置 XPBD 的 lambda：</p>
+<pre><code>initial = stretchedDistanceState()
+pbd = clone(initial)
+xpbd = clone(initial)
+for each UI update:                         # 模拟时间增加 1/60 s
+    for each inner substep:
+        h = (1/60) / substeps
+        xpbd.lambda = 0
+        repeat iterations times:
+            pair = RTPhysics.projectDistance(pbd.a, pbd.b, L0, 1)
+            pbd.a, pbd.b = pair.a, pair.b
+            soft = RTPhysics.projectDistanceXPBD(
+                xpbd.a, xpbd.b, L0, compliance, h, xpbd.lambda)
+            xpbd.a, xpbd.b, xpbd.lambda = soft.a, soft.b, soft.lambda
+measure both lengths, errors and xpbd.lambda
+time += 1/60</code></pre>
+<p><strong>面积伪代码。</strong>先检查几何，再使用真实共享函数；返回粒子数组与 lambda 都必须写回：</p>
+<pre><code>if geometry is coincident, collinear, reversed or nonfinite:
+    pause and request reset
+lambda = 0
+repeat iterations times:
+    result = RTPhysics.projectAreaXPBD(
+        particles[0], particles[1], particles[2], particles[3],
+        restArea, compliance, 1/60, lambda)
+    particles = result.particles
+    lambda = result.lambda
+measure signed area, relative area error and maximum |lambda|</code></pre>
+<table><thead><tr><th>症状</th><th>优先检查</th><th>最小动作</th></tr></thead><tbody>
+<tr><td>柔度为零仍与 PBD 不同</td><td>PBD 被偷偷降刚度，或两侧初值被共享</td><td>固定 <code>projectDistance(...,1)</code> 并独立克隆</td></tr>
+<tr><td>增大柔度结果不变</td><td>有效柔度或真实 API 仍使用旧参数</td><td>打印 \(\alpha\)、\(h\)、\(\tilde{\alpha}\) 与返回 lambda</td></tr>
+<tr><td>迭代后误差振荡</td><td>每轮丢弃返回 lambda，或位置符号写反</td><td>同子步继承 <code>result.lambda</code>，核对梯度方向</td></tr>
+<tr><td>改子步只改标签</td><td>投影仍用旧 \(h\)，模拟时间又被乘以子步数</td><td>核对 \(h=1/(60s)\) 与 <code>time+=1/60</code></td></tr>
+<tr><td>少子步与多子步逐位不同</td><td>把近似子步不变性误当成恒等式</td><td>比较相同模拟时间的误差趋势，不要求二进制相同</td></tr>
+<tr><td>面积读数 NaN / Infinity</td><td>顶点重合、共线、翻面或输入非有限</td><td>暂停并重置，不编造梯度或裁剪状态</td></tr>
+<tr><td>拖拽后面积突然跳变</td><td>旧 lambda 被带入用户替换的几何</td><td>拖动时暂停并清零，下一次更新从零开始</td></tr>
+</tbody></table>
+<p><strong>当前 Python 实现。</strong><code>physics/cloth/pbd.py</code> 有结构、剪切、弯曲三类<strong>距离约束</strong>；<code>physics/cloth/xpbd.py</code> 为这些距离约束保存柔度与 lambda，并在每次子步求解开始时清零。<code>physics/common/simulation.py</code> 默认 <code>fixed_dt=1/120</code>、<code>substeps=2</code>，所以实际子步为 \(h=1/240\,\mathrm s\)。</p>
+<p><code>physics/softbody/geometry.py</code> 生成结构/剪切距离约束、表面三角形和固定<strong>六个四面体</strong>；<code>physics/softbody/xpbd.py</code> 求解这些距离约束与四面体体积约束。当前 Python 软体<strong>没有面积约束</strong>，<strong>没有独立弯曲约束</strong>（布片的 bend 仍是距离约束，不是独立弯曲能量或二面角约束），<strong>没有自碰撞</strong>，也<strong>没有中心粒子参与体积</strong>。增加立方体分辨率会增加距离网格与表面三角形，但体积分解仍固定为六个四面体，不能据此声称已有精细体积网格。</p>
+<p><strong>浏览器边界。</strong>两个 Demo 使用 JavaScript 双精度与共享 UI/核心，是有界教学实验，不是生产求解器。Python 使用 <code>float32</code> 张量；数值精度、约束集合与积分路径不同，因此本章只比较概念与趋势，不承诺两种实现逐位一致。</p>
+<p><strong>本章小结：</strong>XPBD 用柔度表达软硬，用有效柔度匹配子步，用乘子增量处理约束，并用生命周期、几何检查与真实读数保证结果可复现。</p>
+</div></section><section class="section chapter-section" id="sources"><div class="section-label">7.13 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/pbd.py"><span>physics/cloth/pbd.py</span><small>当前 Python 实现：结构、剪切、弯曲距离约束的 PBD 投影；弯曲仍是距离约束，不是独立弯曲约束。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/cloth/xpbd.py"><span>physics/cloth/xpbd.py</span><small>当前 Python 实现：按约束保存柔度与 lambda，每个子步求解前清零，并在迭代中增量更新。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span><small>当前 Python 实现：默认 fixed_dt=1/120、substeps=2，按实际子步积分、求解约束并重建速度。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/geometry.py"><span>physics/softbody/geometry.py</span><small>当前 Python 实现：结构/剪切距离约束、表面三角形与固定六个四面体；没有面积约束或中心粒子体积参与。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/softbody/xpbd.py"><span>physics/softbody/xpbd.py</span><small>当前 Python 实现：距离与四面体体积 XPBD，使用独立 volume_lambdas；不含面积、独立弯曲或自碰撞。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/book/assets/physics-core.js"><span>book/assets/physics-core.js</span><small>浏览器共享数值核心：projectDistance、projectDistanceXPBD 与 projectAreaXPBD，返回新对象并保留约束乘子状态。</small>↗</a></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="physics01.html"><small>← 上一章</small>从真实运动到数字状态</a><a href="physics08.html"><small>下一章 →</small>三种算法同题比较</a></nav></article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

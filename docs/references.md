@@ -1,7 +1,7 @@
 # RenderTorch 参考资料索引
 
-> 整理日期：2026-11-26
-> 用途：约束阶段一 Qt 最小闭环与后续物理 Demo 的实现边界。只记录思想与接口经验，不复制受版权保护的正文、插图或实现代码。
+> 整理日期：2026-11-27
+> 用途：记录 Qt 最小闭环、图形学子书与物理子书的实现边界。只核对知识与接口经验，不复制受版权保护的正文、插图或实现代码。
 
 ## 1. 当前实现依据
 
@@ -26,22 +26,51 @@
 | [LearnOpenGL](https://learnopengl.com/About) | Joey de Vries | 图片 CC BY 4.0；代码示例 CC BY-NC 4.0 | 核对 OpenGL 管线、纹理和阴影概念；图解全部原创，不下载或复用站点图片。 |
 | [Physically Based Rendering, 4th edition](https://pbr-book.org/4ed/contents) | Matt Pharr、Wenzel Jakob、Greg Humphreys | CC BY-NC-ND 4.0 | 引用材质、光照与渲染知识；不复制图片、正文或改编内容。 |
 | [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) | Peter Shirley、Trevor David Black、Steve Hollasch | All rights reserved | 仅作学习参考；不复制正文、代码示例或图片。 |
-| [University Physics Volume 1](https://openstax.org/books/university-physics-volume-1/pages/preface) | OpenStax | CC BY 4.0 | 预留给后续物理子书，核对牛顿力学、能量、动量与振动。 |
-| [Physically Based Modeling, SIGGRAPH 2001 Course Notes](https://www.cs.cmu.edu/~baraff/sigcourse/) | David Baraff、Andrew Witkin | Course notes | 预留给后续物理子书，核对约束、碰撞与数值积分。 |
+| [University Physics Volume 1](https://openstax.org/books/university-physics-volume-1/pages/preface) | OpenStax | CC BY 4.0 | 用于物理子书，核对牛顿力学、能量、动量与振动。 |
+| [Physically Based Modeling, SIGGRAPH 2001 Course Notes](https://www.cs.cmu.edu/~baraff/sigcourse/) | David Baraff、Andrew Witkin | Course notes | 用于物理子书，核对约束、碰撞与数值积分。 |
 | [Foundations of Physically Based Modeling and Animation](https://books.google.com/books?vid=ISBN9781568818770) | John House、John Keyser | Commercial publication | 仅作商业教材参考；不复制正文、图片或代码。 |
-| [Position Based Dynamics](https://doi.org/10.1016/j.jvcir.2007.01.005) | Matthias Müller et al. | Paper citation | 预留给后续物理子书，只引用算法、公式出处与 DOI。 |
-| [XPBD](https://doi.org/10.1145/1399504.1360662) | Miles Macklin et al. | Paper citation | 预留给后续物理子书，只引用算法、公式出处与 DOI。 |
+| [Position Based Dynamics](https://doi.org/10.1016/j.jvcir.2007.01.005) | Matthias Müller et al. | Paper citation | 用于物理子书，只引用算法、公式出处与 DOI。 |
+| [XPBD](https://doi.org/10.1145/1399504.1360662) | Miles Macklin et al. | Paper citation | 用于物理子书，只引用算法、公式出处与 DOI。 |
 
 图形学子书另使用本地 KaTeX 0.16.47 渲染公式；其 MIT 许可证随静态资源保存在 `book/assets/vendor/katex/LICENSE`。
 
-## 3. 许可证与署名
+## 3. 物理子书参考资料
+
+物理子书包含 10 章、20 个 Demo。机器可读索引见 [book/physics_references.json](../book/physics_references.json)，构建后生成 `book/physics/references.html` 参考资料页。四类分组依次为基础力学、约束与碰撞、PBD/XPBD、工程参考。
+
+| 分组 | 资料 | 作者 | 许可 | 本书用途与边界 |
+|---|---|---|---|---|
+| 基础力学 | [University Physics Volume 1](https://openstax.org/books/university-physics-volume-1/pages/preface) | OpenStax | CC BY 4.0 | 核对牛顿力学、能量、动量与振动。 |
+| 约束与碰撞 | [Physically Based Modeling, SIGGRAPH 2001 Course Notes](https://www.cs.cmu.edu/~baraff/sigcourse/) | David Baraff、Andrew Witkin | Course notes | 核对约束、碰撞与数值积分。 |
+| 约束与碰撞 | [Foundations of Physically Based Modeling and Animation](https://books.google.com/books?vid=ISBN9781568818770) | John House、John Keyser | Commercial publication | 仅作商业教材的建模与动画知识参考。 |
+| PBD/XPBD | [Position Based Dynamics](https://doi.org/10.1016/j.jvcir.2007.01.005) | Matthias Müller et al. | Paper citation | 核对位置投影、约束迭代与碰撞投影，引用算法与 DOI。 |
+| PBD/XPBD | [XPBD: Position-Based Simulation of Compliant Constrained Dynamics](https://doi.org/10.1145/1399504.1360662) | Miles Macklin et al. | Paper citation | 核对柔度、拉格朗日乘子、子步与刚度控制，引用算法与 DOI。 |
+| 工程参考 | [Matter.js Engine](https://brm.io/matter-js/docs/files/src_core_Engine.js.html) | Liam Brummitt | MIT | 核对固定时间步、力/冲量与交互流程；Matter.js 是二维引擎，不作为三维布料算法依据。 |
+| 工程参考 | [Blender 物理文档](https://docs.blender.org/manual/en/5.3/physics/cloth/introduction.html) | Blender Documentation Team | CC BY-SA 4.0 | 核对布料、软体、刚体与约束行为；不照搬求解器或直接把商业引擎参数映射为 PBD/XPBD 参数。 |
+
+### 原创内容与使用边界
+
+- 所有上述资料只用于**只核对知识，不复制正文/图片/代码**。
+- 中文讲解、公式推导、数值算例、伪代码与 Canvas/SVG 图示由本教材重新组织；不转载商业教材或论文插图，也不复制大段文字。
+- 开放许可不等于可以省略署名。后续若复用开放许可素材，必须保留作者、来源和许可声明，并遵守相应许可条件。
+- 物理子书另使用本地 KaTeX 0.16.47 渲染公式，采用 MIT 许可；完整许可证见 [book/assets/vendor/katex/LICENSE](../book/assets/vendor/katex/LICENSE)。
+
+### 当前 Python 能力边界
+
+- 公共质点路径提供状态、固定时间步、半隐式积分、静态平面/球碰撞和诊断；Python 调用方状态使用 `float32`，浏览器 Demo 使用 JavaScript 双精度，不承诺逐位相同。
+- 布料已有质量弹簧以及结构、剪切、弯曲距离约束的 PBD/XPBD；当前没有独立弯曲约束、自碰撞或生产级接触流形。
+- 软体使用含内部粒子的 3×3×3 格点与六个四面体体积约束；浏览器中的二维面积 XPBD 是教学类比，不表示 Python 已有独立面积约束。
+- 当前 Python 刚体是只含平移的球体，没有角速度、转动惯量、力矩、滚动、动态刚体对或 CCD；浏览器旋转实验用于解释概念。
+- 本书浏览器实验用于可推导、可操作和可验证的教学，不是生产物理引擎，也不把概念 Demo 描述为已有 Python 实现。
+
+## 4. 许可证与署名
 
 - **Matter.js**：MIT。若后续复用代码，保留 Liam Brummitt 的版权与许可声明；许可证来源：[matter-js](https://github.com/liabru/matter-js)。
 - **Blender 文档**：CC BY-SA 4.0。若复用文字或图像，署名 Blender Documentation Team、附来源链接，并按相同方式共享衍生内容；许可证来源：[Blender Copyright](https://docs.blender.org/manual/zh-hans/3.6/copyright.html)。
 - **PBD / XPBD 论文**：未发现开放再许可，按默认版权处理。课程中只给出原创概述、公式引用与伪代码，不复制论文插图或大段文字。
 - **Qt / PyTorch**：使用官方公开 API，不把文档示例视为可自由再分发的项目素材。
 
-## 4. 从资料到项目的设计约束
+## 5. 从资料到项目的设计约束
 
 1. 核心场景与相机数学不导入 Qt、Pygame 或窗口 API。
 2. FrameBuffer 独立保存 RGBA、深度和物体 ID；Qt 只负责显示与输入。
@@ -50,7 +79,7 @@
 5. 后续三种布料算法共用粒子、约束、碰撞体和固定步长，但每个算法独立成文件、独立测试。
 6. 每个教学 Demo 都应提供可重复初始状态、重置、暂停、单步和误差指标。
 
-## 5. 当前环境核验
+## 6. 当前环境核验
 
 - Python：`pythonTry` / Python 3.11.9。
 - PyTorch：2.3.1；MPS 是否可用由运行时检查决定。

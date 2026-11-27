@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>几何图元与网格表示</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html" aria-current="page"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 05 / 15 · 二、几何建模</p><h1>几何图元与网格表示</h1><p class="lede">用点、线、三角形和索引网格组织三维几何，并比较不同三角化方式。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明索引网格为什么能复用顶点</li><li>比较三角形扇、三角形带和显式索引</li></ol><p><strong>先验知识：</strong>第 2 章的点和向量、基础数组概念。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">从三个顶点开始</div><div class="prose"><h2>网格是对几何的共享与连接</h2><p>一个点只有位置，一条线段连接两个点，一个三角形由三个顶点围成。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 05 / 15 · 二、几何建模</p><h1>几何图元与网格表示</h1><p class="lede">用点、线、三角形和索引网格组织三维几何，并比较不同三角化方式。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">5.1 学习目标</a><a href="#intuition">5.2 从三个顶点开始</a><a href="#definitions">5.3 符号与定义</a><a href="#derivation">5.4 逐步推导</a><a href="#example">5.5 数值算例</a><a href="#pseudocode">5.6 伪代码与实现映射</a><a href="#self-test">5.7 自测</a><a href="#debugging">5.8 常见错误与调试</a><a href="#status">5.9 实现状态</a><a href="#sources">5.10 源码映射</a><a href="#demo">5.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">5.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>说明索引网格为什么能复用顶点</li><li>比较三角形扇、三角形带和显式索引</li></ol><p><strong>先验知识：</strong>第 2 章的点和向量、基础数组概念。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">5.2 · 从三个顶点开始</div><div class="prose"><h2>网格是对几何的共享与连接</h2><p>一个点只有位置，一条线段连接两个点，一个三角形由三个顶点围成。
                 渲染器偏爱三角形，因为三个顶点总能确定一个平面，而且边函数、重心坐标和裁剪算法都很成熟。
                 但场景不会只有少数三角形：球、角色和地形通常包含成千上万个面。</p>
                 <p>如果每个三角形都重复保存三个坐标，相邻三角形之间的公共顶点就会存很多遍。
@@ -35,7 +35,7 @@
                 <path d="M40 180L220 40" stroke="#087f83" stroke-width="3"/><g fill="#17252d" font-size="15"><text x="20" y="205">v0</text><text x="230" y="205">v1</text><text x="230" y="35">v3</text><text x="20" y="35">v2</text></g>
                 <text x="60" y="225" fill="#854721">沿条带依次连接</text></g></svg>
                 <p><strong>图 5.1</strong>　左侧是扇形三角化；右侧把四边形顶点按条带顺序重新排列。
-                两者几何相同，但描述三角形的索引模式不同。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>顶点、面、边与索引缓冲</h2><p>用 \(\mathbf p_i=(x_i,y_i,z_i)\) 表示第 \(i\) 个顶点。
+                两者几何相同，但描述三角形的索引模式不同。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">5.3 · 符号与定义</div><div class="prose"><h2>顶点、面、边与索引缓冲</h2><p>用 \(\mathbf p_i=(x_i,y_i,z_i)\) 表示第 \(i\) 个顶点。
                 一个三角形面保存三个整数，例如 \(f=(i_0,i_1,i_2)\)。
                 边通常按无序对 \(\{i,j\}\) 记录，因此共享边不因端点顺序相反而被当成两条边。</p>
                 <div class="formula">\[\begin{aligned}
@@ -48,7 +48,7 @@
                 <div class="formula">\[f_0=(0,1,2),\qquad f_1=(0,2,3).\]</div>
                 <p>两个面共享边 \(\{0,2\}\)。如果改成无索引的三角形汤，就要保存
                 \(\mathbf p_0,\mathbf p_1,\mathbf p_2,\mathbf p_0,\mathbf p_2,\mathbf p_3\)
-                六个顶点角点；索引网格只保存四个独立顶点。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>三角形扇、三角形带与索引复用</h2><p>三角形扇固定一个锚点。给定 \(m+1\) 个顶点，它生成 \(m-1\) 个三角形：</p>
+                六个顶点角点；索引网格只保存四个独立顶点。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">5.4 · 逐步推导</div><div class="prose"><h2>三角形扇、三角形带与索引复用</h2><p>三角形扇固定一个锚点。给定 \(m+1\) 个顶点，它生成 \(m-1\) 个三角形：</p>
                 <div class="formula">\[f_k=(0,k+1,k+2),\qquad k=0,\ldots,m-2.\]</div>
                 <p>三角形带沿一条折线前进，每新增一个顶点就与上一对相邻顶点组成新三角形。
                 若条带顶点依次为 \(\mathbf v_0,\mathbf v_1,\ldots,\mathbf v_m\)，则：</p>
@@ -67,7 +67,7 @@
                 V_{\text{soup}}&=6mn.
                 \end{aligned}\]</div>
                 <p>当 \(m=n=2\) 时，索引网格只需变换 9 个顶点，三角形汤却要处理 24 个重复角点。
-                索引缓冲仍有 \(6mn\) 个整数，因此它不是“零成本”，而是把顶点变换、内存和缓存成本从面数中分离出来。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>一个四边形的三种连接方式</h2><p>同一个四边形的独立顶点始终是 4 个。三角形扇需要 2 个面描述，
+                索引缓冲仍有 \(6mn\) 个整数，因此它不是“零成本”，而是把顶点变换、内存和缓存成本从面数中分离出来。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">5.5 · 数值算例</div><div class="prose"><h2>一个四边形的三种连接方式</h2><p>同一个四边形的独立顶点始终是 4 个。三角形扇需要 2 个面描述，
                 条带需要 2 个面描述，显式索引数组需要 6 个整数。它们的三角形—顶点引用总数都是
                 \(2\times3=6\)：</p>
                 <div class="formula">\[\begin{array}{c|c|c|c}
@@ -80,7 +80,7 @@
                 <p>不要把“顶点数 4”与“索引项数 6”混为一谈。GPU 读取每个面时仍会取出三个索引，
                 只是这三个索引可能指向同一个缓存中的顶点记录。</p>
                 <div class="callout"><strong>检查绕序：</strong>四边形的顶点若按矩形边界排列为
-                \((0,1,2,3)\)，则两个三角形都应保持一致的逆时针方向；否则背面剔除会得到裂缝。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>用共享索引构造四边形网格</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                \((0,1,2,3)\)，则两个三角形都应保持一致的逆时针方向；否则背面剔除会得到裂缝。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">5.6 · 伪代码与实现映射</div><div class="prose"><h2>用共享索引构造四边形网格</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>vertices = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
                 faces = [(0, 1, 2), (0, 2, 3)]
 
@@ -92,25 +92,25 @@
                 for a, b, c in faces:
                     edges.update({tuple(sorted((a, b))), tuple(sorted((b, c))), tuple(sorted((c, a)))})</code></pre></div>
                 <p>RenderTorch 的 <code>MeshResource</code> 已经采用“顶点数组 + 面索引元组”的组织方式。
-                当前 <code>faces</code> 允许三边以上的多边形，因此第 10 章还会看到裁剪后的多边形如何重新扇形成三角形。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>确认你理解的是连接关系，而不只是坐标</h2><details><summary>问题 1：两个三角形共享三个顶点，一定共享几何位置吗？</summary>
+                当前 <code>faces</code> 允许三边以上的多边形，因此第 10 章还会看到裁剪后的多边形如何重新扇形成三角形。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">5.7 · 自测</div><div class="prose"><h2>确认你理解的是连接关系，而不只是坐标</h2><details><summary>问题 1：两个三角形共享三个顶点，一定共享几何位置吗？</summary>
                 <p><strong>答案：</strong>不一定。无索引存储中，数值相同的坐标也可能属于不同顶点记录。
                 是否共享取决于索引和拓扑合并策略。</p></details>
                 <details><summary>问题 2：一个四边形三角化后有几个索引项？</summary>
                 <p><strong>答案：</strong>显式索引方式有 6 个；扇形或条带 API 可以用 4 个顶点和 2 个指令隐式描述。</p></details>
                 <details><summary>问题 3：为什么规则网格的三角形汤顶点数是 6mn？</summary>
-                <p><strong>答案：</strong>共有 \(2mn\) 个三角形，每个三角形重复保存 3 个角点。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>网格错误的定位清单</h2><ol class="debug-list"><li><strong>索引越界：</strong>检查索引是否从 1 开始。OBJ 的索引从 1 开始，内部数组通常从 0 开始。</li>
+                <p><strong>答案：</strong>共有 \(2mn\) 个三角形，每个三角形重复保存 3 个角点。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">5.8 · 常见错误与调试</div><div class="prose"><h2>网格错误的定位清单</h2><ol class="debug-list"><li><strong>索引越界：</strong>检查索引是否从 1 开始。OBJ 的索引从 1 开始，内部数组通常从 0 开始。</li>
                 <li><strong>三角形反向：</strong>交换一个面的第二、第三个索引，观察法线是否翻转。</li>
                 <li><strong>共享边重复：</strong>用无序对建立边集合，不要依赖字符串或端点顺序。</li>
                 <li><strong>重复顶点未合并：</strong>检查位置、法线、UV 是否本应共享；纹理接缝处有时反而必须拆顶点。</li>
                 <li><strong>条带奇偶错误：</strong>检查每加入一个顶点后的绕序，不要把世界坐标随手一起重排。</li></ol>
-                <p>最小调试网格应当是 1 个三角形、1 个四边形和 1 个四面体。它们分别能暴露基础索引、面拆分为三角形和闭合拓扑问题。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>浏览器网格实验与 RenderTorch 数据结构</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验在同一个四边形上切换扇形、条带和显式索引，
+                <p>最小调试网格应当是 1 个三角形、1 个四边形和 1 个四面体。它们分别能暴露基础索引、面拆分为三角形和闭合拓扑问题。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">5.9 · 实现状态</div><div class="prose"><h2>浏览器网格实验与 RenderTorch 数据结构</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验在同一个四边形上切换扇形、条带和显式索引，
                 高亮共享边并统计顶点记录与索引项。它是二维拓扑演示，不是完整 OBJ 查看器。</p>
                 <p><span class="status-pill">现有 RenderTorch</span>
                 <code>core/scene.py</code> 的 <code>MeshResource</code> 保存顶点和面索引；
                 <code>core/primitives.py</code> 用共享顶点构造立方体、平面和球；
                 <code>renderer/pipeline.py</code> 遍历面索引并送入裁剪与光栅化。</p>
                 <p><span class="status-pill">后续实现路线</span> 可为网格添加边邻接表、退化三角形检查和属性级顶点拆分，
-                但这些都应建立在明确的索引契约之上。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：MeshResource 顶点与面索引</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：共享顶点构造基本网格</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：按面索引遍历三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="mesh-demo" data-demo="mesh-demo"><h3>四边形三角化与索引复用</h3><p>切换 fan、strip 与 indexed，比较共享边、顶点记录和索引项。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter04.html"><small>← 上一章</small>相机、视图、投影与视口</a><a href="chapter06.html"><small>下一章 →</small>网格拓扑、法线、绕序与三角化</a></nav></article>
+                但这些都应建立在明确的索引契约之上。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">5.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：MeshResource 顶点与面索引</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：共享顶点构造基本网格</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：按面索引遍历三角形</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">5.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="mesh-demo" data-demo="mesh-demo"><h3>四边形三角化与索引复用</h3><p>切换 fan、strip 与 indexed，比较共享边、顶点记录和索引项。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter04.html"><small>← 上一章</small>相机、视图、投影与视口</a><a href="chapter06.html"><small>下一章 →</small>网格拓扑、法线、绕序与三角化</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

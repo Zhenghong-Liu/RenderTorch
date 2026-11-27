@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
+  <meta name="theme-color" content="#132832">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>碰撞、恢复与摩擦</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+  <script src="../assets/vendor/katex/katex.min.js" defer></script>
+  <script src="../assets/vendor/katex/auto-render.min.js" defer></script>
+  <script src="../assets/book.js" defer></script>
+<script src="../assets/physics-core.js" defer></script><script src="../assets/physics.js" defer></script><script src="../assets/demos/physics11.js" defer></script><script src="../assets/demos/physics12.js" defer></script></head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header"><a class="brand" href="../index.html"><span class="brand-mark">R</span><span>RenderTorch · 物理模拟教材</span></a><span class="header-meta">PARTICLES · CONSTRAINTS · DYNAMICS</span><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="sidebar">目录</button></header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">物理子书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">P</span><span>物理首页</span></a></li><li><a href="../chapters/physics01.html"><span class="number">01</span><span>从真实运动到数字状态</span></a></li><li><a href="../chapters/physics02.html"><span class="number">02</span><span>速度、加速度与时间积分</span></a></li><li><a href="../chapters/physics03.html"><span class="number">03</span><span>力、能量与阻尼</span></a></li><li><a href="../chapters/physics04.html"><span class="number">04</span><span>质量弹簧系统</span></a></li><li><a href="../chapters/physics05.html"><span class="number">05</span><span>PBD：直接修正位置</span></a></li><li><a href="../chapters/physics06.html" aria-current="page"><span class="number">06</span><span>碰撞、恢复与摩擦</span></a></li><li><a href="../chapters/physics07.html"><span class="number">07</span><span>XPBD：用柔度表达软硬</span></a></li><li><a href="../chapters/physics08.html"><span class="number">08</span><span>三种算法同题比较</span></a></li><li><a href="../chapters/physics09.html"><span class="number">09</span><span>刚体、旋转与地面接触</span></a></li><li><a href="../chapters/physics10.html"><span class="number">10</span><span>软体、布料与综合项目</span></a></li><li><a href="../references.html"><span class="number">R</span><span>物理参考资料</span></a></li></ol><p class="sidebar-note">先理解状态与时间，再讨论约束、碰撞和材料。</p></aside>
+    <main id="main-content">
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Physics Chapter 06 / 10 · 单元二：物体为什么保持形状</p><h1>碰撞、恢复与摩擦</h1><p class="lede">先把碰撞写成距离、法线与相对速度，再分开处理位置投影、法向冲量和切向响应；最后比较离散端点检测与 swept AABB 的进入/离开时间。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">6.1 学习目标</a><a href="#penetration-constraint">6.2 接触约束</a><a href="#contact-distance">6.3 几何接触</a><a href="#collision-normal">6.4 接触方向</a><a href="#position-projection">6.5 消除重合</a><a href="#relative-velocity">6.6 谁在靠近</a><a href="#normal-impulse">6.7 法向响应</a><a href="#restitution">6.8 弹性与算例</a><a href="#tangential-friction">6.9 切向响应</a><a href="#discrete-penetration">6.10 离散检测</a><a href="#continuous-detection">6.11 连续进入与离开</a><a href="#pseudocode-debugging">6.12 实现与边界</a><a href="#sources">6.13 源码映射</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">6.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>用有向距离和穿透量判断接触，并求平面与静态球的碰撞法线</li><li>区分位置投影、法向冲量与切向摩擦，避免把三者混成一次速度乘法</li><li>推导恢复系数公式并完成 vy=-5、e=0.5 的精确算例</li><li>说明共享 JavaScript 的乘性速度衰减与 Python 球体—粒子切向冲量上限的边界</li><li>用 slab 进入/离开时间解释高速薄墙漏碰，并检查实际时间步与模拟时间</li></ol><p><strong>先验知识：</strong>第五章的位置投影与逆质量、牛顿第二定律与动量、向量点积、区间交集。</p></div></section><section class="section chapter-section" id="penetration-constraint"><div class="section-label">6.2 · 接触约束</div><div class="prose"><h2>穿透约束：先把不允许的重合量算出来</h2>
+<p>上一章用距离约束保持物体形状；本章的碰撞约束禁止物体进入地面或静态球内部。几何上先问“穿进去多少”，速度响应随后再回答“接下来怎样离开”。</p>
+<p>设质点位置为 \(\mathbf p\)，静态平面为 \(\mathbf n\cdot\mathbf x=b\)，其中 \(\mathbf n\) 是单位法线。质点半径为 \(r\) 时，有向距离与穿透量为</p>
+\[
+d=\mathbf n\cdot\mathbf p-b-r,
+\qquad
+\delta=\max(0,-d).
+\]
+<p>对球心 \(\mathbf c\)、半径 \(R\) 的静态球，定义 \(\Delta\mathbf p=\mathbf p-\mathbf c\)、\(d=\lVert\Delta\mathbf p\rVert\)、组合半径 \(R+r\)，同样有 \(\delta=\max(0,R+r-d)\)。\(\delta=0\) 不表示一定有碰撞响应：刚好接触或正在分离的物体也可能没有穿透。</p>
+<p><strong>位置与速度要分别检查。</strong>投影可以消除几何重合；只有 approaching 的法向相对速度才需要施加法向冲量。把 penetrating 与 approaching 当成同一个条件，会在静止接触和分离接触上反复改速度。</p>
+<p><strong>本节小结：</strong>穿透量是几何误差，不是冲量；先量误差，再决定是否响应。</p>
+</div></section><section class="section chapter-section" id="contact-distance"><div class="section-label">6.3 · 几何接触</div><div class="prose"><h2>平面与球体距离：半径必须进入接触条件</h2>
+<p>平面把空间分成 \(\mathbf n\cdot\mathbf x<b\) 与 \(\mathbf n\cdot\mathbf x>b\) 两侧。球心到平面的有向距离是 \(\mathbf n\cdot\mathbf p-b\)，但球面接触要求这个距离不小于 \(r\)，所以真正的球心接触距离是 \(d=\mathbf n\cdot\mathbf p-b-r\)。</p>
+<p>静态球没有“内外两侧”的平面公式，而用球心距离。两个球不发生内部穿透的条件是</p>
+\[
+\lVert\mathbf p-\mathbf c\rVert\ge R+r.
+\]
+<p>本章 <code>collision-friction</code> 的地面半径为 \(0.5\,\mathrm m\)，平面为 \(y=0\)，因此球心接触高度是 \(0.5\,\mathrm m\)。静态圆半径为 \(0.3\,\mathrm m\)，质点半径为 \(0.5\,\mathrm m\)，组合半径为 \(0.8\,\mathrm m\)。半径不能只加在绘图上而漏掉几何计算。</p>
+<p><strong>Python 映射。</strong><code>physics/common/colliders.py</code> 的 <code>PlaneCollider</code> 处理点列到平面的有向距离，<code>SphereCollider</code> 处理点列到球心的距离；它们不知道调用者额外的球半径。<code>physics/rigidbody/sphere.py</code> 才在地面路径减去球半径，并在静态球路径使用两个半径之和。</p>
+<p><strong>本节小结：</strong>接触距离由法线和半径共同定义，点碰撞器与带半径刚体不能混为一谈。</p>
+</div></section><section class="section chapter-section" id="collision-normal"><div class="section-label">6.4 · 接触方向</div><div class="prose"><h2>碰撞法线：从接触表面指向外部</h2>
+<p>碰撞法线 \(\mathbf n\) 是单位向量，指向把运动物体推出静态物体的方向。对 \(\mathbf n\cdot\mathbf x=b\) 的平面，法线就是 \(\mathbf n\)；对静态球，</p>
+\[
+\mathbf n=\frac{\mathbf p-\mathbf c}{\lVert\mathbf p-\mathbf c\rVert}.
+\]
+<p>本章地面法线为 \((0,1)\)。默认静态圆接触时 \(\mathbf p-\mathbf c=(0.36,0.48)\)，距离为 \(0.6\)，所以 \(\mathbf n=(0.6,0.8)\)。斜法线上的速度必须做点积，不能只看 \(v_y\)。</p>
+<p><strong>球心重合是退化情形。</strong>距离为零时单位法线没有定义。共享 <code>collideParticleSphere</code> 对距离不超过内部容差的情况直接返回新对象，不假造一个接触方向；Python 静态球路径会选择一个固定轴向作为后备。后备方向是数值约定，不意味着重合状态存在唯一物理解。</p>
+<p><strong>法线决定投影与响应的符号。</strong>若法线反了，穿透修正会把物体推得更深， approaching 条件也会反号。画布上的法线箭头应与几何公式使用同一个 \(\mathbf n\)。</p>
+<p><strong>本节小结：</strong>平面法线已知，球面法线由球心差向量归一化，重合时需要显式退化策略。</p>
+</div></section><section class="section chapter-section" id="position-projection"><div class="section-label">6.5 · 消除重合</div><div class="prose"><h2>位置投影：移动几何位置，不偷改碰撞前速度</h2>
+<p>静态物体的逆质量为零。若只允许质点移动，穿透修正为</p>
+\[
+\mathbf p'\leftarrow\mathbf p+\delta\mathbf n.
+\]
+<p>地面默认 \(\delta=0.5-0.2=0.3\,\mathrm m\)，所以球心从 \(y=0.2\) 投影到 \(y=0.5\)。静态圆默认 \(\delta=0.8-0.6=0.2\,\mathrm m\)，所以 \((0.36,0.48)\) 投影到 \((0.48,0.64)\)。这两个修正量分别是 Demo 真正调用共享函数前后测得的几何重叠。</p>
+<p>若两个物体都能移动，位置修正应按逆质量 \(w_a=1/m_a\)、\(w_b=1/m_b\) 分配：</p>
+\[
+\mathbf p_a'\leftarrow\mathbf p_a+w_a\frac{\delta}{w_a+w_b}\mathbf n,
+\qquad
+\mathbf p_b'\leftarrow\mathbf p_b-w_b\frac{\delta}{w_a+w_b}\mathbf n.
+\]
+<p>静态表面 \(w_b=0\)，全部修正落到运动物体。投影只改变位置；本章共享碰撞函数在位置投影之后，根据碰撞前速度计算响应。Demo 的“碰撞前/后”读数只在同一次真实调用实际投影位置或改变速度时更新；保留的是上一次真实碰撞的完整读数，不把不同调用拼成一次碰撞。</p>
+<p><strong>本节小结：</strong>投影消除穿透，逆质量分配修正；它不是速度冲量，也不是额外能量来源。</p>
+</div></section><section class="section chapter-section" id="relative-velocity"><div class="section-label">6.6 · 谁在靠近</div><div class="prose"><h2>相对速度：先分解法向，再判断是否 approaching</h2>
+<p>设物体 \(a,b\) 的速度为 \(\mathbf v_a,\mathbf v_b\)，定义相对速度 \(\mathbf v_{\mathrm{rel}}=\mathbf v_b-\mathbf v_a\) 与法向相对速度</p>
+\[
+u_n=\mathbf v_{\mathrm{rel}}\cdot\mathbf n.
+\]
+<p>静态物体的 \(\mathbf v_b=0\)，于是 \(u_n=-\mathbf v_a\cdot\mathbf n\)。若 \(u_n<0\)，两物体正在靠近；若 \(u_n>0\)，它们正在分离。切向速度为</p>
+\[
+\mathbf v_t=\mathbf v_a-(\mathbf v_a\cdot\mathbf n)\mathbf n.
+\]
+<p>默认地面 \(\mathbf v=(4,-5)\)、\(\mathbf n=(0,1)\)，所以 \(u_n=-5\)，切向速度为 \((4,0)\)。默认静态圆满足 \(\mathbf v\cdot\mathbf n=4(0.6)-5(0.8)=-1.6\)，切向速度为 \((4.96,-3.72)\)。</p>
+<p><strong>接触次数只数 approaching。</strong>物体停在地面时，位置约束可能仍报告接触，但 \(u_n=0\)，不构成一次新的撞击。本章两个 Demo 用投影函数是否改变速度以及 \(u_n<0\) 判定真实接触事件，不把每个重叠静止帧累加为一次碰撞。</p>
+<p><strong>本节小结：</strong>穿透说明位置错，法向相对速度说明是否靠近；两个条件服务不同目的。</p>
+</div></section><section class="section chapter-section" id="normal-impulse"><div class="section-label">6.7 · 法向响应</div><div class="prose"><h2>冲量：用相对速度变化恢复正确分离速度</h2>
+<p>冲量是力在接触时间内的积分，直接改变动量。对两个物体，令法向冲量标量为 \(j\ge0\)，则</p>
+\[
+j=-\frac{(1+e)u_n}{w_a+w_b},
+\qquad u_n<0,
+\]
+\[
+\mathbf v_a'\leftarrow\mathbf v_a+w_a j\mathbf n,
+\qquad
+\mathbf v_b'\leftarrow\mathbf v_b-w_b j\mathbf n.
+\]
+<p>分母为零表示两端都固定，没有可响应冲量的自由度。静态表面的 \(w_b=0\)，所以 \(j=-(1+e)u_n/w_a\)。共享浏览器质点用 \(w=0\) 表示固定，但地面/静态圆接口只接收一个运动质点，不模拟静态物体的反冲。</p>
+<p><strong>approaching-only guard。</strong>上式只在 \(u_n<0\) 时执行。若物体已经分离还继续施加 \((1+e)u_n\mathbf n\)，会把再次靠近的速度反向，制造错误弹跳。当前公共粒子碰撞路径不检查这个 guard，因此不能直接充当正确冲量范例。</p>
+<p><strong>Python 耦合范例。</strong><code>physics/rigidbody/sphere.py</code> 的 <code>collide_with_particles</code> 先检查 <code>normal_speed &gt;= 0</code> 并跳过，再按总逆质量计算法向冲量；它才展示两端速度交换与 approaching-only 分支。共享 <code>physics-core.js</code> 的两个碰撞函数有 approaching 检查，但只是单质点静态接触模型。</p>
+<p><strong>本节小结：</strong>法向冲量由接近速度、恢复系数和总逆质量决定，而且只应对 approaching 接触施加。</p>
+</div></section><section class="section chapter-section" id="restitution"><div class="section-label">6.8 · 弹性与算例</div><div class="prose"><h2>恢复系数：反弹速度与接近速度之比</h2>
+<p>恢复系数 \(e\in[0,1]\) 描述法向相对速度在碰撞前后的比值。静态表面下，\(u_n'=-e u_n\)，所以 \(e=0\) 表示完全非弹性，\(e=1\) 表示弹性。本章控件限制在这个区间，不把 \(e>1\) 的增能行为混进教学模型。</p>
+<p><strong>默认算例。</strong>质点法向速度 \(v_n=-5\,\mathrm{m/s}\)，地面静止，恢复系数 \(e=0.5\)。有</p>
+\[
+u_n=-5,
+\qquad
+j=-\frac{(1+0.5)(-5)}{1}=7.5,
+\]
+\[
+v_n'=-5+1\times7.5=2.5\,\mathrm{m/s}.
+\]
+<p>因此题目要求的关系是 <code>vy=-5, e=0.5 → vy'=2.5</code>。若 \(e=0\)，结果为 \(v_y'=0\)；若 \(e=1\)，结果为 \(v_y'=5\)。切向速度是否变化由摩擦单独决定，不能从 \(e\) 推断。</p>
+<p><strong>共享接口验证。</strong><code>collideSpherePlane({x:0,y:0.2,vx:4,vy:-5,w:1},0.5,0,0.5,0.2)</code> 返回位置 \(y=0.5\)、速度 \((v_x,v_y)=(3.2,2.5)\)。其中 \(3.2=4\max(0,1-0.2)\)，法向的 \(2.5\) 来自恢复系数。</p>
+<p><strong>本节小结：</strong>先算法向接近速度，再用恢复系数得到分离速度，并单独检查切向响应。</p>
+</div></section><section class="section chapter-section" id="tangential-friction"><div class="section-label">6.9 · 切向响应</div><div class="prose"><h2>摩擦：共享乘性衰减不等于 Coulomb 冲量上限</h2>
+<p>库仑摩擦用切向冲量 \(j_t\) 抵抗相对滑动，并满足 \(|j_t|\le\mu j\)。本章共享 JavaScript 的两个静态接触函数不实现这条完整模型：</p>
+\[
+\mathbf v_t'\leftarrow\mathbf v_t\max(0,1-f).
+\]
+<p>这里的 <code>friction</code> 是每次 approaching 接触的切向速度乘性衰减比例。地面函数直接乘 <code>vx</code>；静态圆先按当前碰撞前法线分解切向速度，再乘同一个因子。因子下限为零，因此摩擦值大于 1 时也不会把速度反向。这个简化与法向冲量大小无关，不能称为 Coulomb 摩擦。</p>
+<p><strong>Python 公共静态碰撞器的限制。</strong><code>physics/common/colliders.py</code> 的 <code>PlaneCollider</code> 对点列先做无 approaching-only guard 的法向速度更新；<code>SphereCollider</code> 也缺少这个 guard，并且在法向速度已改变后，仍用碰撞前保存的 <code>normal_velocity</code> 计算切向分量。这个陈旧切向分解只属于公共 <code>SphereCollider.project</code>，不是带半径刚体路径的行为；它会把法向响应的错误部分混入切向，因此这里只映射为“当前实现的限制”，不是正确冲量范例。</p>
+<p><strong>带半径刚体的静态路径。</strong><code>physics/rigidbody/sphere.py</code> 的 <code>_collide_plane</code> 与 <code>_collide_static_sphere</code> 只在法向速度小于零时施加法向响应，并在响应后重新读取速度计算切向，再按 \(\mathbf v_t'=(1-friction)\mathbf v_t\) 做乘性衰减。它们不是 Coulomb 切向冲量上限。实际限制是：即使已经分离，只要位置仍穿透，摩擦分支仍会执行；Python 的 <code>(1-friction)</code> 因子没有像浏览器 <code>max(0,1-friction)</code> 那样钳制到非负。</p>
+<p><strong>Python 球体—粒子耦合。</strong><code>physics/rigidbody/sphere.py</code> 在法向冲量之后重新计算相对速度与切向，并执行</p>
+\[
+j_t\leftarrow\operatorname{clamp}\left(
+-\frac{\mathbf v_{\mathrm{rel}}'\cdot\hat{\mathbf t}}{w_a+w_b},
+-\mu j,\mu j\right).
+\]
+<p>这才是现有的切向冲量上限例子。它还按逆质量把 \(j_t\hat{\mathbf t}\) 分别作用于球体与粒子。本章 Demo 不冒充这个双体积冲量求解器，而是明确展示共享静态接触 API 的实际乘性行为。</p>
+<p><strong>本节小结：</strong>先说清 API 真正做了什么，再与 Coulomb 冲量模型比较；不能只因为变量叫 friction 就认定语义相同。</p>
+</div><div class="demo-mount physics-demo" id="collision-friction" data-demo="collision-friction"><h3>地面与静态圆的接触读数</h3><p>默认暂停；同一组初速度分别撞击地面与静态圆。调节恢复系数、摩擦和初速度，对照真实共享函数的穿透修正、法向/切向速度与 approaching 接触次数。</p></div></section><section class="section chapter-section" id="discrete-penetration"><div class="section-label">6.10 · 离散检测</div><div class="prose"><h2>离散穿透：只看端点会漏掉整个接触区间</h2>
+<p>离散碰撞检测在一个时间步的起点与终点检查几何重叠。若一步内物体穿过薄墙，但起点在墙前、终点在墙后，两个端点都不与墙重叠，端点检测就报告“没有接触”。</p>
+<p>设时间步为 \(\Delta t\)，离散测试只问终点 \(\mathbf p(t+\Delta t)\) 是否位于墙 AABB 内；它不保存物体在步内经过的轨迹。增加子步通常能减少漏碰，却也会增加计算量，而且任何有限步长都不能仅靠“多检查几个端点”获得连续保证。</p>
+<p><strong>本章 continuous-collision 只比较检测。</strong>上下两个方块以同一个非负水平速度运动，都不反弹、不受重力、不做碰撞响应，也不把位置裁剪到墙边。上面的离散方块只检查端点；下面的 swept 方块检查本步移动 AABB 与静态墙 AABB 的最早重叠。</p>
+<p><strong>漏碰何时定案。</strong> swept 路径已经完全穿过墙，而离散端点从未重叠时，Demo 还要经过两个额外物理步的有界观察窗口，才把“离散是否漏碰”定为“是”。仅穿过一瞬或尚未完成观察时保持“观察中”。若某个离散端点曾重叠，则记录命中，不判漏碰。</p>
+<p><strong>本节小结：</strong>离散检测丢掉了步内路径，薄墙与高速是暴露这个问题的最小条件。</p>
+</div></section><section class="section chapter-section" id="continuous-detection"><div class="section-label">6.11 · 连续进入与离开</div><div class="prose"><h2>swept AABB：用 slab 区间求进入与离开时间</h2>
+<p>把运动方块在一步内的每个坐标范围视为连续区间。对静态墙的第 \(i\) 个 slab，若运动坐标速度为 \(d_i\)，解两个边界不等式，得到进入时间 \(t_{i,\mathrm{enter}}\) 与离开时间 \(t_{i,\mathrm{exit}}\)。组合所有轴：</p>
+\[
+t_{\mathrm{enter}}=\max_i t_{i,\mathrm{enter}},
+\qquad
+t_{\mathrm{exit}}=\min_i t_{i,\mathrm{exit}}.
+\]
+<p>当 \(t_{\mathrm{enter}}\le t_{\mathrm{exit}}\)，且区间 \([t_{\mathrm{enter}},t_{\mathrm{exit}}]\) 与本步 \([0,\Delta t]\) 相交时，本步存在接触。若起点已经重叠，进入时间记为零。若某轴 \(d_i=0\)，该轴必须已经重叠，否则整条 swept 路径都不命中；不能除以零。</p>
+<p>本章默认方块中心从 \(x=0.1\,\mathrm m\) 出发，半宽 \(0.2\,\mathrm m\)，墙左面 \(x=2\,\mathrm m\)、厚 \(0.04\,\mathrm m\)，速度 \(18\,\mathrm{m/s}\)，\(\Delta t=0.08\,\mathrm s\)。水平方向最早的全局进入、离开时间为</p>
+\[
+t_{\mathrm{enter}}=\frac{2-(0.1+0.2)}{18}=\frac{1.7}{18}
+\approx0.094444444\,\mathrm s,
+\]
+\[
+t_{\mathrm{exit}}=\frac{2.04-(-0.1)}{18}=\frac{2.14}{18}
+\approx0.118888889\,\mathrm s.
+\]
+<p>第一终点 \(x=1.54\) 在墙前，第二终点 \(x=2.98\) 在墙后，离散端点都不重叠；swept 在第二步找到上述接触区间。命中位置记录进入面 \((2,0)\)。进入/离开标记在穿过墙后仍保留，便于回看。</p>
+<p><strong>时间步不是标签。</strong>控件所选 \(\Delta t\) 直接用于位置推进、swept 区间和模拟时间；共享 UI 仍每 \(1/60\,\mathrm s\) 调用一次 <code>update</code>。默认高速薄墙会漏碰；较慢速度、较厚墙或较小 \(\Delta t\) 都能让离散端点命中。</p>
+<p><strong>本节小结：</strong>swept AABB 求的是时间区间交集，最早接触由各轴最晚进入与最早离开共同决定。</p>
+</div><div class="demo-mount physics-demo" id="continuous-collision" data-demo="continuous-collision"><h3>离散端点与 swept AABB 对照</h3><p>默认暂停；两个方块以相同速度水平运动。调节速度、墙厚和实际物理步长，比较离散是否漏碰、连续进入/离开时间与命中位置。</p></div></section><section class="section chapter-section" id="pseudocode-debugging"><div class="section-label">6.12 · 实现与边界</div><div class="prose"><h2>伪代码与调试：让接触事件和时间区间可复现</h2>
+<pre><code>collide_and_measure(run, restitution, friction):
+    before_position = copy(run.particle.position)
+    before_velocity = copy(run.particle.velocity)
+    normal = contact_normal(before_position)
+    overlap = geometric_overlap(before_position)
+    after = real_shared_collision_function(run.particle, restitution, friction)
+    position_changed = after.position != before_position
+    velocity_changed = after.velocity != before_velocity
+    measured = measure(before_velocity, after.velocity, normal, overlap)
+    if position_changed or velocity_changed:
+        run.contact = measured
+    if dot(before_velocity, normal) &lt; 0 and velocity_changed:
+        run.approaching_contacts += 1
+    run.particle = after
+    run.particle.position += run.particle.velocity * dt
+
+advance_continuous(discrete, swept, speed, wall, dt):
+    old_discrete = copy(discrete.position)
+    old_swept = copy(swept.position)
+    discrete.position.x += speed * dt
+    swept.position.x += speed * dt
+    discrete.endpoint_hit = aabbOverlap(discrete.position, wall)
+    interval = sweptAabbInterval(old_swept.position, swept.position, wall, dt)
+    swept.hit = interval overlaps [0, dt]
+    record earliest global entry, exit and hit face
+    time += dt</code></pre>
+<p>上段第一组伪代码中，两个 run 分别调用真实的 <code>collideSpherePlane</code> 与 <code>collideParticleSphere</code>。穿透修正量在调用前由几何重叠计算，速度分量在同一调用前后测量。第二组伪代码不做反弹或位置修正，两个方块的位移表达式完全相同。</p>
+<table><thead><tr><th>症状</th><th>优先检查</th><th>最小动作</th></tr></thead><tbody>
+<tr><td>球穿过地面</td><td>接触距离漏掉半径，或只检查严格小于而漏掉边界</td><td>核对组合半径与包含等号的条件</td></tr>
+<tr><td>静止时接触次数暴涨</td><td>把每个 penetrating 帧都计为撞击</td><td>只统计 approaching 且速度响应改变的接触</td></tr>
+<tr><td>反弹后切向错乱</td><td>使用陈旧法向速度分解切向</td><td>法向响应后重新计算相对速度</td></tr>
+<tr><td>摩擦值越大速度越快</td><td>把摩擦当恢复系数或允许负衰减因子</td><td>核对 max(0,1-friction)</td></tr>
+<tr><td>高速穿墙但 swept 也漏</td><td>某轴除零、进入/离开取反或区间未和本步相交</td><td>逐轴打印 slab 区间与交集</td></tr>
+<tr><td>改 dt 只改读数</td><td>位移仍使用旧步长，或模拟时间仍按 1/60</td><td>核对 position+=speed*selected_dt 与 time+=selected_dt</td></tr>
+<tr><td>NaN / Infinity</td><td>零距离法线、非正 dt 或非有限状态</td><td>暂停并重置，不裁剪成看似有限的假解</td></tr>
+</tbody></table>
+<p><strong>当前 Python 映射。</strong><code>physics/common/colliders.py</code> 是批量点—平面/点—球投影器；<code>physics/rigidbody/sphere.py</code> 提供带半径刚体地面/静态球路径与双体积球体—粒子冲量耦合；<code>physics/common/simulation.py</code> 负责重力、阻尼、积分、约束与碰撞器调度。公共粒子碰撞路径不充当正确冲量范例；它的缺少 approaching-only guard 与静态球陈旧切向分解已如实说明。</p>
+<p><strong>浏览器边界。</strong>两个浏览器实验使用 JavaScript 双精度和共享 UI/数值 API。<code>collision-friction</code> 是无重力、单质点静态接触读数实验，展示真实共享函数的乘性摩擦；<code>continuous-collision</code> 只实现 AABB 检测，不旋转、不响应、不替代生产 CCD。Python 使用 float32 张量；基础 <code>Simulation</code> 默认 <code>fixed_dt=1/120</code>、<code>substeps=2</code>（实际 \(h=1/240\,\mathrm s\)）；<code>RigidBodySimulation</code> 当前默认一个子步，实际积分步为 \(1/120\,\mathrm s\)。所以不能要求两种实现逐位相同。</p>
+<p><strong>本章小结：</strong>碰撞由几何接触、碰撞法线、相对速度、位置投影、法向冲量和切向响应组成；连续检测保存步内路径的时间区间。</p>
+</div></section><section class="section chapter-section" id="sources"><div class="section-label">6.13 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/colliders.py"><span>physics/common/colliders.py</span><small>当前 Python 实现：批量点—平面与点—球穿透投影；静态碰撞器缺少 approaching-only guard，SphereCollider 的切向分解使用碰撞前 normal_velocity。仅用于说明限制。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/rigidbody/sphere.py"><span>physics/rigidbody/sphere.py</span><small>当前 Python 实现：带半径地面/静态球响应，以及 collide_with_particles 的双体积法向冲量、approaching-only 检查和切向冲量上限。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/physics/common/simulation.py"><span>physics/common/simulation.py</span><small>当前 Python 实现：默认 fixed_dt=1/120、substeps=2，负责重力、阻尼、积分、约束和静态碰撞器调度。</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/book/assets/physics-core.js"><span>book/assets/physics-core.js</span><small>浏览器共享数值核心：collideSpherePlane 与 collideParticleSphere 返回新质点，静态接触摩擦采用 max(0,1-friction) 的切向速度乘性衰减。</small>↗</a></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="physics01.html"><small>← 上一章</small>从真实运动到数字状态</a><a href="physics07.html"><small>下一章 →</small>XPBD：用柔度表达软硬</a></nav></article>
+    </main>
+  </div>
+  <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
+</body>
+</html>

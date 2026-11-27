@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>纹理、UV 与透视矫正</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html" aria-current="page"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 13 / 15 · 四、光照与完整渲染</p><h1>纹理、UV 与透视矫正</h1><p class="lede">把二维纹理坐标绑定到三维表面，并推导透视矫正后的纹理采样。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释 UV 坐标和最近邻、双线性过滤</li><li>比较屏幕线性 UV 与透视矫正 UV</li></ol><p><strong>先验知识：</strong>第 11 章的透视矫正插值、第 5 章的三角形表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">给三角形贴上图案</div><div class="prose"><h2>UV 是几何与图像之间的坐标契约</h2><p>网格顶点只有位置还不够。若想让一个表面显示木纹、棋盘或图像，
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 13 / 15 · 四、光照与完整渲染</p><h1>纹理、UV 与透视矫正</h1><p class="lede">把二维纹理坐标绑定到三维表面，并推导透视矫正后的纹理采样。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">13.1 学习目标</a><a href="#intuition">13.2 给三角形贴上图案</a><a href="#definitions">13.3 符号与定义</a><a href="#derivation">13.4 逐步推导</a><a href="#example">13.5 数值算例</a><a href="#pseudocode">13.6 伪代码与实现映射</a><a href="#self-test">13.7 自测</a><a href="#debugging">13.8 常见错误与调试</a><a href="#status">13.9 实现状态</a><a href="#sources">13.10 源码映射</a><a href="#demo">13.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">13.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>解释 UV 坐标和最近邻、双线性过滤</li><li>比较屏幕线性 UV 与透视矫正 UV</li></ol><p><strong>先验知识：</strong>第 11 章的透视矫正插值、第 5 章的三角形表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">13.2 · 给三角形贴上图案</div><div class="prose"><h2>UV 是几何与图像之间的坐标契约</h2><p>网格顶点只有位置还不够。若想让一个表面显示木纹、棋盘或图像，
                 需要给每个顶点附加纹理坐标 \((u,v)\)。光栅化得到像素的覆盖位置后，
                 先恢复该像素的 UV，再从纹理中采样颜色。</p>
                 <p>最容易犯的错误是直接对 UV 做屏幕线性插值。透视投影前后，
@@ -33,7 +33,7 @@
                 <circle cx="330" cy="240" r="6" fill="#c66b35"/><circle cx="565" cy="240" r="6" fill="#c66b35"/><circle cx="385" cy="65" r="6" fill="#c66b35"/>
                 <text x="322" y="267">(0,0)</text><text x="555" y="267">(1,0)</text><text x="375" y="50">(0,1)</text>
                 <text x="57" y="278">纹理空间</text><text x="407" y="278">网格参数空间</text>
-                </svg><p><strong>图 13.1</strong>　纹理坐标把二维图案附着到三角形参数域，采样时再恢复每个像素的 UV。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>UV、逆深度与采样位置</h2><p>设三角形三个顶点的纹理坐标为 \((u_i,v_i)\)，裁剪空间齐次坐标为
+                </svg><p><strong>图 13.1</strong>　纹理坐标把二维图案附着到三角形参数域，采样时再恢复每个像素的 UV。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">13.3 · 符号与定义</div><div class="prose"><h2>UV、逆深度与采样位置</h2><p>设三角形三个顶点的纹理坐标为 \((u_i,v_i)\)，裁剪空间齐次坐标为
                 \((x_i,y_i,z_i,w_i)\)，像素重心坐标为 \(\lambda_i\)。
                 纹理通常定义在 \([0,1]^2\)，超出范围时由 wrap 或 clamp 策略处理。</p>
                 <p>定义像素处的逆深度与纹理分子：</p>
@@ -43,7 +43,7 @@
                 <div class="formula">\[u_{\mathrm{pixel}}=\frac{\widetilde u}{1/w_{\mathrm{pixel}}},\qquad
                 v_{\mathrm{pixel}}=\frac{\widetilde v}{1/w_{\mathrm{pixel}}}.\]</div>
                 <p>代码中常写成 <code>u_pixel</code>、<code>v_pixel</code> 与 <code>w_pixel</code>。
-                它们不是三个独立近似，而是同一透视矫正公式的三个输出。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>透视矫正 UV 与纹理过滤</h2><p><strong>第一步：识别错误插值。</strong> 屏幕线性 UV 为
+                它们不是三个独立近似，而是同一透视矫正公式的三个输出。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">13.4 · 逐步推导</div><div class="prose"><h2>透视矫正 UV 与纹理过滤</h2><p><strong>第一步：识别错误插值。</strong> 屏幕线性 UV 为
                 \(u=\sum_i\lambda_i u_i\)、\(v=\sum_i\lambda_i v_i\)。
                 它只在一个与屏幕平行的表面上正确；一旦三角形前后顶点距离不同，纹理就会滑动或拉伸。</p>
                 <p><strong>第二步：构造可线性插值的量。</strong> 与深度相同，
@@ -62,7 +62,7 @@
                 \alpha\beta\mathbf T_{11}.\]</div>
                 <p>最近邻保留硬边但会产生锯齿；双线性更平滑，但远景缩小后仍可能摩尔纹。
                 mipmap 为同一纹理预生成逐级缩小版本，根据屏幕导数选择层级；
-                mipmap 链、三线性过滤和各向异性过滤属于 GPU 纹理管线，本章浏览器实验不实现它们。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>同一像素的线性和透视 UV</h2><p>三个顶点的 \(w=(1,2,4)\)，重心坐标
+                mipmap 链、三线性过滤和各向异性过滤属于 GPU 纹理管线，本章浏览器实验不实现它们。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">13.5 · 数值算例</div><div class="prose"><h2>同一像素的线性和透视 UV</h2><p>三个顶点的 \(w=(1,2,4)\)，重心坐标
                 \((\lambda_0,\lambda_1,\lambda_2)=(0.2,0.3,0.5)\)，
                 纹理坐标为 \((0,0),(1,0),(0,1)\)。</p>
                 <p>屏幕线性结果为：</p>
@@ -72,7 +72,7 @@
                 <p>纹理分子为 \(\widetilde u=0.3/2=0.15\)、\(\widetilde v=0.5/4=0.125\)，因此：</p>
                 <div class="formula">\[u_{\mathrm{pixel}}=\frac{0.15}{0.475}\approx0.316,\qquad
                 v_{\mathrm{pixel}}=\frac{0.125}{0.475}\approx0.263.\]</div>
-                <p>两种结果的差异会直接改变棋盘格采样位置。远端 \(w\) 越大，透视矫正越明显。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>先矫正 UV，再采样纹理</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                <p>两种结果的差异会直接改变棋盘格采样位置。远端 \(w\) 越大，透视矫正越明显。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">13.6 · 伪代码与实现映射</div><div class="prose"><h2>先矫正 UV，再采样纹理</h2><div class="code-card"><div class="code-toolbar"><span>JAVASCRIPT · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>const inverse_w_pixel = l0 / w0 + l1 / w1 + l2 / w2;
 if (!Number.isFinite(inverse_w_pixel) || inverse_w_pixel &lt;= 0) return;
 const w_pixel = 1 / inverse_w_pixel;
@@ -81,25 +81,25 @@ const v_pixel = (l0 * v0 / w0 + l1 * v1 / w1 + l2 * v2 / w2) / inverse_w_pixel;
 const checker = ((Math.floor(u_pixel * 8) + Math.floor(v_pixel * 8)) % 2) === 0;
 const color = filter === 'nearest' ? sampleNearest(u_pixel, v_pixel) : sampleBilinear(u_pixel, v_pixel);</code></pre></div>
                 <p>当前 RenderTorch 的 OBJ 导入只读取 <code>v</code> 与 <code>f</code>，
-                网格不保存 UV；光栅器也只插值深度。纹理链路需要从顶点属性契约开始增加。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>坐标、过滤与远景</h2><details><summary>问题 1：什么时候屏幕线性 UV 恰好正确？</summary>
+                网格不保存 UV；光栅器也只插值深度。纹理链路需要从顶点属性契约开始增加。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">13.7 · 自测</div><div class="prose"><h2>坐标、过滤与远景</h2><details><summary>问题 1：什么时候屏幕线性 UV 恰好正确？</summary>
                 <p><strong>答案：</strong>三个顶点的 w 相同，或三角形所在平面与屏幕平行时。</p></details>
                 <details><summary>问题 2：为什么不能先算 w_pixel，再直接用它修正 UV？</summary>
                 <p><strong>答案：</strong>必须保留三个顶点各自的 1/w_i 加权；单个像素深度不能替代顶点信息。</p></details>
                 <details><summary>问题 3：双线性过滤能完全消除远景摩尔纹吗？</summary>
                 <p><strong>答案：</strong>不能。缩小时一个纹素可能覆盖多个像素，需要 mipmap 或更完整的过滤策略。</p></details>
                 <details><summary>问题 4：UV 超出 [0,1] 时必须报错吗？</summary>
-                <p><strong>答案：</strong>不一定。可以由纹理的 wrap/clamp 策略决定重复、镜像或延伸边缘。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>纹理滑动、翻转与锯齿</h2><ol class="debug-list"><li><strong>相机移动时纹理滑动：</strong>检查是否使用透视矫正 UV。</li>
+                <p><strong>答案：</strong>不一定。可以由纹理的 wrap/clamp 策略决定重复、镜像或延伸边缘。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">13.8 · 常见错误与调试</div><div class="prose"><h2>纹理滑动、翻转与锯齿</h2><ol class="debug-list"><li><strong>相机移动时纹理滑动：</strong>检查是否使用透视矫正 UV。</li>
                 <li><strong>图像上下颠倒：</strong>统一图像原点与 UV 的 v 方向；很多图像文件从顶部开始，而参数曲面从底部开始。</li>
                 <li><strong>接缝闪烁：</strong>检查共享顶点是否具有一致 UV，wrap 模式是否统一。</li>
                 <li><strong>最近邻出现锯齿：</strong>可切到双线性；远景仍闪烁时考虑 mipmap。</li>
                 <li><strong>边缘拉出条纹：</strong>采样前按约定 clamp 或 wrap，并检查纹素坐标是否少加/多加 0.5。</li></ol>
-                <p>先用纯色 UV 渐变代替真实纹理，再验证坐标连续性，最后加入棋盘与双线性过滤。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>当前网格与纹理实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章用程序棋盘纹理对比屏幕线性 UV 与透视矫正 UV，
+                <p>先用纯色 UV 渐变代替真实纹理，再验证坐标连续性，最后加入棋盘与双线性过滤。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">13.9 · 实现状态</div><div class="prose"><h2>当前网格与纹理实现</h2><p><span class="status-pill">浏览器概念实验</span> 本章用程序棋盘纹理对比屏幕线性 UV 与透视矫正 UV，
                 支持 nearest/bilinear 过滤和远端深度调节。</p>
                 <p><span class="status-pill">现有 RenderTorch</span> <code>core/primitives.py</code> 只生成位置与面索引；
                 <code>solid/custom.py</code> 不解析 OBJ 的 UV/法线；<code>renderer/rasterizer.py</code>
                 只对深度做 \(1/w\) 插值，没有通用顶点属性缓冲。</p>
                 <p><span class="status-pill">后续实现路线</span> 增加顶点 UV → 透视矫正属性插值 →
-                最近邻/双线性采样 → wrap/clamp → mipmap。完整 GPU 纹理链不在当前浏览器实验中实现。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：可复用的重心坐标与逆深度插值</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：位置与面，不含 UV</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/solid/custom.py"><span>solid/custom.py</span><small>现有实现：OBJ 只导入 v 与 f</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="texture-demo" data-demo="texture-demo"><h3>透视矫正 UV 与棋盘过滤</h3><p>对比屏幕线性 UV 与透视矫正 UV，切换最近邻和双线性过滤，并改变远端顶点深度。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter12.html"><small>← 上一章</small>光照模型与材质</a><a href="chapter14.html"><small>下一章 →</small>阴影、gamma 与色调映射</a></nav></article>
+                最近邻/双线性采样 → wrap/clamp → mipmap。完整 GPU 纹理链不在当前浏览器实验中实现。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">13.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/rasterizer.py"><span>renderer/rasterizer.py</span><small>现有实现：可复用的重心坐标与逆深度插值</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/primitives.py"><span>core/primitives.py</span><small>现有实现：位置与面，不含 UV</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/solid/custom.py"><span>solid/custom.py</span><small>现有实现：OBJ 只导入 v 与 f</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">13.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="texture-demo" data-demo="texture-demo"><h3>透视矫正 UV 与棋盘过滤</h3><p>对比屏幕线性 UV 与透视矫正 UV，切换最近邻和双线性过滤，并改变远端顶点深度。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter12.html"><small>← 上一章</small>光照模型与材质</a><a href="chapter14.html"><small>下一章 →</small>阴影、gamma 与色调映射</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

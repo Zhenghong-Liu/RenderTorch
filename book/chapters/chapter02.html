@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>三维空间、向量、点与方向</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html" aria-current="page"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 02 / 15 · 一、像素与数学</p><h1>三维空间、向量、点与方向</h1><p class="lede">用点、向量、点积和叉积描述三维几何，并为法线计算建立工具。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>区分点与向量，并解释左右手坐标系</li><li>使用点积求夹角、使用叉积求法线</li></ol><p><strong>先验知识：</strong>基础三角函数、第 1 章的坐标概念。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">位置与位移不是同一件事</div><div class="prose"><h2>用向量描述方向和大小</h2><p>点回答“在哪里”，向量回答“向哪里、走多远”。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 02 / 15 · 一、像素与数学</p><h1>三维空间、向量、点与方向</h1><p class="lede">用点、向量、点积和叉积描述三维几何，并为法线计算建立工具。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">2.1 学习目标</a><a href="#intuition">2.2 位置与位移不是同一件事</a><a href="#definitions">2.3 符号与定义</a><a href="#derivation">2.4 逐步推导</a><a href="#example">2.5 数值算例</a><a href="#pseudocode">2.6 伪代码与实现映射</a><a href="#self-test">2.7 自测</a><a href="#debugging">2.8 常见错误与调试</a><a href="#status">2.9 实现状态</a><a href="#sources">2.10 源码映射</a><a href="#demo">2.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">2.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>区分点与向量，并解释左右手坐标系</li><li>使用点积求夹角、使用叉积求法线</li></ol><p><strong>先验知识：</strong>基础三角函数、第 1 章的坐标概念。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">2.2 · 位置与位移不是同一件事</div><div class="prose"><h2>用向量描述方向和大小</h2><p>点回答“在哪里”，向量回答“向哪里、走多远”。
 两个点相减得到位移向量；一个向量乘以标量会改变大小，但不改变方向所在的那条直线。
 三维渲染中的相机视线、表面法线、光线方向和三角形边，都是向量。</p>
 <p>本章采用右手坐标系：食指指向 +x，中指指向 +y，拇指指向 +z。
@@ -34,7 +34,7 @@
 <text x="292" y="72" fill="#087f83">a</text><text x="417" y="185" fill="#c66b35">b</text>
 <path d="M290 85A220 220 0 0 1 410 190" fill="none" stroke="#8a9a94" stroke-dasharray="6 5"/>
 <text x="348" y="120" fill="#62727a">θ</text>
-</svg><p><strong>图 2.1</strong>　点积衡量方向一致性；叉积生成同时垂直于 a 与 b 的方向。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>三种最基本的向量运算</h2><p>设 \(\mathbf a=(a_x,a_y,a_z)\)、\(\mathbf b=(b_x,b_y,b_z)\)。</p>
+</svg><p><strong>图 2.1</strong>　点积衡量方向一致性；叉积生成同时垂直于 a 与 b 的方向。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">2.3 · 符号与定义</div><div class="prose"><h2>三种最基本的向量运算</h2><p>设 \(\mathbf a=(a_x,a_y,a_z)\)、\(\mathbf b=(b_x,b_y,b_z)\)。</p>
 <h3>点积：得到一个标量</h3>
 <div class="formula">\[\begin{aligned}
 \mathbf a\cdot\mathbf b &= a_xb_x+a_yb_y+a_zb_z, \\
@@ -53,7 +53,7 @@ a_xb_y-a_yb_x
 <p>叉积不满足交换律：\(\mathbf a\times\mathbf b=-(\mathbf b\times\mathbf a)\)。
 它的长度满足 \(\|\mathbf a\times\mathbf b\|=\|\mathbf a\|\,\|\mathbf b\|\sin\theta\)，恰好是以 a、b 为邻边的平行四边形面积。</p>
 <div class="callout"><strong>零向量不能归一化。</strong> 当 \(\|\mathbf a\|=0\) 时，方向没有定义。
-真实代码应在这一系统边界返回明确状态，而不是让 NaN 扩散到后续矩阵。</div></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>从点积得到夹角与投影</h2><p>把向量 b 分解为“沿 a 的部分”和“垂直 a 的部分”。
+真实代码应在这一系统边界返回明确状态，而不是让 NaN 扩散到后续矩阵。</div></div></section><section class="section chapter-section" id="derivation"><div class="section-label">2.4 · 逐步推导</div><div class="prose"><h2>从点积得到夹角与投影</h2><p>把向量 b 分解为“沿 a 的部分”和“垂直 a 的部分”。
 沿 a 的单位方向是 \(\hat{\mathbf a}\)，投影标量为 \(\mathbf a\cdot\hat{\mathbf a}\)，投影向量为
 \((\mathbf a\cdot\hat{\mathbf a})\hat{\mathbf a}\)。代入 \(\mathbf a\cdot\mathbf b=\|\mathbf a\|\|\mathbf b\|\cos\theta\)：</p>
 <div class="formula">\[\begin{aligned}
@@ -69,7 +69,7 @@ a_xb_y-a_yb_x
 (\mathbf a\times\mathbf b)\cdot\mathbf b=0.\]</div>
 <p>展开第一式会得到
 \(a_yb_za_x-a_zb_ya_x+a_zb_xa_y-a_xb_za_y+a_xb_ya_z-a_yb_xa_z=0\)，
-所有项两两抵消。由长度公式还可知，两个共线向量的叉积为零向量。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>同时计算点积、夹角和法线</h2><p>取 \(\mathbf a=(1,2,3)\)、\(\mathbf b=(2,-1,2)\)。</p>
+所有项两两抵消。由长度公式还可知，两个共线向量的叉积为零向量。</p></div></section><section class="section chapter-section" id="example"><div class="section-label">2.5 · 数值算例</div><div class="prose"><h2>同时计算点积、夹角和法线</h2><p>取 \(\mathbf a=(1,2,3)\)、\(\mathbf b=(2,-1,2)\)。</p>
 <div class="formula">\[\begin{aligned}
 \mathbf a\cdot\mathbf b &= 1\cdot2+2\cdot(-1)+3\cdot2=1, \\
 \|\mathbf a\| &= \sqrt{14}\approx3.742, & \|\mathbf b\| &=3, \\
@@ -86,7 +86,7 @@ a_xb_y-a_yb_x
 计算也得到相同结果。归一化后法线为
 \((7,4,-5)/\sqrt{90}\approx(0.738,0.422,-0.527)\)。</p>
 <div class="callout"><strong>符号检查：</strong> 交换 a、b 后，叉积应变为 (−7,−4,5)，
-点积、长度和夹角不变。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>渲染器需要反复使用的向量原语</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 三维向量</span><button class="copy-button" type="button" data-copy>复制</button></div>
+点积、长度和夹角不变。</div></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">2.6 · 伪代码与实现映射</div><div class="prose"><h2>渲染器需要反复使用的向量原语</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 三维向量</span><button class="copy-button" type="button" data-copy>复制</button></div>
 <pre><code>def dot(a, b):
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
@@ -105,23 +105,23 @@ def normalize(a):
 
 cos_theta = dot(a, b) / (dot(a, a)**0.5 * dot(b, b)**0.5)</code></pre></div>
 <p>GPU 着色器通常直接提供 <code>dot</code>、<code>cross</code> 和 <code>normalize</code>。
-自己实现一次仍有价值：它能揭示数据类型、精度和零向量处理等问题。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>用符号性质检查结果</h2><details><summary>问题 1：(1,0,0) 与 (0,1,0) 的点积和叉积是什么？</summary>
+自己实现一次仍有价值：它能揭示数据类型、精度和零向量处理等问题。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">2.7 · 自测</div><div class="prose"><h2>用符号性质检查结果</h2><details><summary>问题 1：(1,0,0) 与 (0,1,0) 的点积和叉积是什么？</summary>
 <p><strong>答案：</strong>点积为 0；叉积为 (0,0,1)。</p></details>
 <details><summary>问题 2：为什么 (2,0,0) 与 (4,0,0) 的叉积为零？</summary>
 <p><strong>答案：</strong>它们共线，sin θ=0，无法围成非零平行四边形。</p></details>
 <details><summary>问题 3：单位向量点积能否略大于 1？</summary>
-<p><strong>答案：</strong>数学上不能；浮点舍入可能产生 1.0000001，计算夹角前应截断到 [−1,1]。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>向量错误往往来自约定</h2><ol class="debug-list"><li><strong>检查手系：</strong>同一组坐标在左手系和右手系中，叉积方向相反。</li>
+<p><strong>答案：</strong>数学上不能；浮点舍入可能产生 1.0000001，计算夹角前应截断到 [−1,1]。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">2.8 · 常见错误与调试</div><div class="prose"><h2>向量错误往往来自约定</h2><ol class="debug-list"><li><strong>检查手系：</strong>同一组坐标在左手系和右手系中，叉积方向相反。</li>
 <li><strong>检查分量顺序：</strong>叉积第二项常被误写成 \(a_zb_y-a_yb_z\)，导致整体符号错误。</li>
 <li><strong>区分点与方向：</strong>法线、光线用向量；表面位置用点。点与点不能直接点积。</li>
 <li><strong>检查长度：</strong>用归一化后的向量做方向判断，而不是任意长度的向量。</li>
 <li><strong>观察退化：</strong>三角形面积接近零时，法线会剧烈变化，应检查重复顶点或共线边。</li></ol>
 <p>固定测试向量 \(\mathbf x=(1,0,0)\)、\(\mathbf y=(0,1,0)\)、\(\mathbf z=(0,0,1)\)，
-验证 \(\mathbf x\times\mathbf y=\mathbf z\)、\(\mathbf x\cdot\mathbf z=0\)，比随意画图更快定位符号问题。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>浏览器向量实验与项目边界</h2><p><span class="status-pill">浏览器概念实验</span> 本章提供二维分量控制、点积、夹角、
+验证 \(\mathbf x\times\mathbf y=\mathbf z\)、\(\mathbf x\cdot\mathbf z=0\)，比随意画图更快定位符号问题。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">2.9 · 实现状态</div><div class="prose"><h2>浏览器向量实验与项目边界</h2><p><span class="status-pill">浏览器概念实验</span> 本章提供二维分量控制、点积、夹角、
 叉积和归一化读数，并用 SVG 显示投影关系。它是理解渲染数学的概念工具。</p>
 <p><span class="status-pill">现有 RenderTorch</span> 项目中的相机和投影大量使用 PyTorch 张量，
 但尚没有独立、通用的向量运算模块。本章不把零散矩阵片段包装成已经完成的数学库。</p>
 <p><span class="status-pill">后续实现路线</span> 若后续确实需要统一向量层，应先明确点/向量类型、
-手系和设备张量约定，再用第 6 章的法线与第 15 章的射线求交验证。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>概念内容与真实实现</h2><p>本章以浏览器概念实验为主；RenderTorch 当前实现的对应文件会在确实存在时列出。</p></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="vector-demo" data-demo="vector-demo"><h3>点积、叉积与归一化实验室</h3><p>拖动两个向量的分量，观察夹角、投影、叉积方向与长度关系。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter01.html"><small>← 上一章</small>像素、颜色与图像</a><a href="chapter03.html"><small>下一章 →</small>齐次坐标与几何变换</a></nav></article>
+手系和设备张量约定，再用第 6 章的法线与第 15 章的射线求交验证。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">2.10 · 源码映射</div><div class="prose"><h2>概念内容与真实实现</h2><p>本章以浏览器概念实验为主；RenderTorch 当前实现的对应文件会在确实存在时列出。</p></div></section><section class="section chapter-section" id="demo"><div class="section-label">2.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="vector-demo" data-demo="vector-demo"><h3>点积、叉积与归一化实验室</h3><p>拖动两个向量的分量，观察夹角、投影、叉积方向与长度关系。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter01.html"><small>← 上一章</small>像素、颜色与图像</a><a href="chapter03.html"><small>下一章 →</small>齐次坐标与几何变换</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>

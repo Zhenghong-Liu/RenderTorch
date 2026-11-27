@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="RenderTorch 中文图形学交互教材：从像素、向量与相机到光栅化、光照和光线追踪。">
+  <meta name="description" content="RenderTorch 中文交互教材：从像素到物理，连接图形学与物理模拟。">
   <meta name="theme-color" content="#132832">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <title>网格拓扑、法线、绕序与三角化</title>
@@ -19,7 +19,7 @@
   <div class="layout">
     <aside class="sidebar" id="sidebar" data-sidebar data-open="false"><p class="sidebar-title">全书目录</p><ol class="toc"><li><a href="../index.html"><span class="number">00</span><span>书籍首页</span></a></li><li><a href="chapter01.html"><span class="number">01</span><span>像素、颜色与图像</span></a></li><li><a href="chapter02.html"><span class="number">02</span><span>三维空间、向量、点与方向</span></a></li><li><a href="chapter03.html"><span class="number">03</span><span>齐次坐标与几何变换</span></a></li><li><a href="chapter04.html"><span class="number">04</span><span>相机、视图、投影与视口</span></a></li><li><a href="chapter05.html"><span class="number">05</span><span>几何图元与网格表示</span></a></li><li><a href="chapter06.html" aria-current="page"><span class="number">06</span><span>网格拓扑、法线、绕序与三角化</span></a></li><li><a href="chapter07.html"><span class="number">07</span><span>参数曲线：Bézier、B-spline 与 NURBS 概念</span></a></li><li><a href="chapter08.html"><span class="number">08</span><span>参数曲面与细分</span></a></li><li><a href="chapter09.html"><span class="number">09</span><span>场景、模型文件、场景图与包围体</span></a></li><li><a href="chapter10.html"><span class="number">10</span><span>齐次裁剪与三角形光栅化</span></a></li><li><a href="chapter11.html"><span class="number">11</span><span>重心坐标、属性插值、深度与遮挡</span></a></li><li><a href="chapter12.html"><span class="number">12</span><span>光照模型与材质</span></a></li><li><a href="chapter13.html"><span class="number">13</span><span>纹理、UV 与透视矫正</span></a></li><li><a href="chapter14.html"><span class="number">14</span><span>阴影、gamma 与色调映射</span></a></li><li><a href="chapter15.html"><span class="number">15</span><span>光线追踪与完整渲染管线比较</span></a></li><li><a href="../references.html"><span class="number">R</span><span>参考资料与许可</span></a></li></ol><p class="sidebar-note">3D 图形学子书 v2<br>先建立数学与管线，再进入光照和光线追踪。</p></aside>
     <main id="main-content">
-      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 06 / 15 · 二、几何建模</p><h1>网格拓扑、法线、绕序与三角化</h1><p class="lede">从共享边、Euler 公式和绕序出发，区分面法线、顶点法线与拓扑结构。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><section class="section chapter-section" id="objectives"><div class="section-label">学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>用 Euler 公式检查简单闭合网格</li><li>解释绕序如何影响面法线和背面判断</li></ol><p><strong>先验知识：</strong>第 2 章的叉积、第 5 章的网格表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">让表面有正反两面</div><div class="prose"><h2>拓扑决定连接，绕序决定朝向</h2><p>三个位置相同的三角形，可以因为索引连接方式不同而成为完全不同的网格。
+      <article class="content"><header class="chapter-header"><p class="eyebrow">Chapter 06 / 15 · 二、几何建模</p><h1>网格拓扑、法线、绕序与三角化</h1><p class="lede">从共享边、Euler 公式和绕序出发，区分面法线、顶点法线与拓扑结构。</p><div class="meta-row"><span class="pill">教材式推导</span><span class="pill">可操作实验</span><span class="pill">真实源码分层</span></div></header><nav class="chapter-section-nav" aria-label="本章导航"><a href="#objectives">6.1 学习目标</a><a href="#intuition">6.2 让表面有正反两面</a><a href="#definitions">6.3 符号与定义</a><a href="#derivation">6.4 逐步推导</a><a href="#example">6.5 数值算例</a><a href="#pseudocode">6.6 伪代码与实现映射</a><a href="#self-test">6.7 自测</a><a href="#debugging">6.8 常见错误与调试</a><a href="#status">6.9 实现状态</a><a href="#sources">6.10 源码映射</a><a href="#demo">6.11 交互实验</a></nav><section class="section chapter-section" id="objectives"><div class="section-label">6.1 · 学习目标</div><div class="prose"><h2>本章结束后你能够</h2><ol><li>用 Euler 公式检查简单闭合网格</li><li>解释绕序如何影响面法线和背面判断</li></ol><p><strong>先验知识：</strong>第 2 章的叉积、第 5 章的网格表示。</p></div></section><section class="section chapter-section" id="intuition"><div class="section-label">6.2 · 让表面有正反两面</div><div class="prose"><h2>拓扑决定连接，绕序决定朝向</h2><p>三个位置相同的三角形，可以因为索引连接方式不同而成为完全不同的网格。
                 拓扑研究的是“谁与谁相连”：哪些边共享、每个顶点周围有哪些面、表面有没有破洞。
                 法线则进一步要求我们知道表面朝哪一面。</p>
                 <p>一个三角形没有先天的“正面”。叉积 \(\mathbf n=(\mathbf p_1-\mathbf p_0)\times
@@ -31,7 +31,7 @@
                 <path d="M150 240L430 240L290 55Z" fill="#087f83" fill-opacity=".18" stroke="#087f83" stroke-width="3"/>
                 <path d="M290 178L355 115" stroke="#c66b35" stroke-width="4" marker-end="url(#normal-arrow)"/>
                 <text x="363" y="109" fill="#854721">n_face</text><text x="120" y="266">A</text><text x="435" y="266">B</text><text x="295" y="42">C</text><text x="518" y="110">D</text>
-                </svg><p><strong>图 6.1</strong>　四面体有 4 个顶点、6 条边和 4 个三角面。高亮面的法线由该面绕序决定。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">符号与定义</div><div class="prose"><h2>边、流形、Euler 示性数与法线</h2><p>边 \(\{i,j\}\) 是无序顶点对。一个闭合三角网格如果每条边恰好邻接两个面，
+                </svg><p><strong>图 6.1</strong>　四面体有 4 个顶点、6 条边和 4 个三角面。高亮面的法线由该面绕序决定。</p></div></div></section><section class="section chapter-section" id="definitions"><div class="section-label">6.3 · 符号与定义</div><div class="prose"><h2>边、流形、Euler 示性数与法线</h2><p>边 \(\{i,j\}\) 是无序顶点对。一个闭合三角网格如果每条边恰好邻接两个面，
                 通常称为二维流形；三条以上面共享同一条边则会出现非流形连接。</p>
                 <p>Euler 公式把顶点、边、面的数量联系起来：</p>
                 <div class="formula">\[V-E+F=\chi.\]</div>
@@ -47,7 +47,7 @@
                 \operatorname{normalize}\!\left(\sum_{f\ni i}A_f\mathbf n_f\right).
                 \end{aligned}\]</div>
                 <p>\(A_f\) 是三角形面积。面积加权能避免大三角形在平滑法线中被小三角形“等权淹没”。
-                面法线描述平面朝向，顶点法线描述局部平滑朝向。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">逐步推导</div><div class="prose"><h2>用四面体验证拓扑，再翻转一个面</h2><p>四面体的四个顶点两两相连，共有 \(\binom{4}{2}=6\) 条边。
+                面法线描述平面朝向，顶点法线描述局部平滑朝向。</p></div></section><section class="section chapter-section" id="derivation"><div class="section-label">6.4 · 逐步推导</div><div class="prose"><h2>用四面体验证拓扑，再翻转一个面</h2><p>四面体的四个顶点两两相连，共有 \(\binom{4}{2}=6\) 条边。
                 每个面都是三角形，共 4 个面。因此：</p>
                 <div class="formula">\[V-E+F=4-6+4=2.\]</div>
                 <p>这与球面拓扑一致。若把面 \((A,B,C)\) 改成 \((A,C,B)\)，顶点、边和面的数量完全不变，
@@ -61,7 +61,7 @@
                 <p>相邻面夹角越平缓，求和后的方向越接近公共趋势；尖锐折痕处则可能更接近某一个面。
                 若需要硬边，应复制该边两侧的顶点，使法线属性不共享。</p>
                 <div class="callout"><strong>开口网格怎么办？</strong> 平面网格在拓扑上是圆盘，满足 \(V-E+F=1\)。
-                不能把开口表面的 \(\chi=1\) 误判为建模错误。</div></div></section><section class="section chapter-section" id="example"><div class="section-label">数值算例</div><div class="prose"><h2>翻转面后法线如何变化</h2><p>取三角形 \(\mathbf p_0=(0,0,0)\)、\(\mathbf p_1=(1,0,0)\)、
+                不能把开口表面的 \(\chi=1\) 误判为建模错误。</div></div></section><section class="section chapter-section" id="example"><div class="section-label">6.5 · 数值算例</div><div class="prose"><h2>翻转面后法线如何变化</h2><p>取三角形 \(\mathbf p_0=(0,0,0)\)、\(\mathbf p_1=(1,0,0)\)、
                 \(\mathbf p_2=(0,1,0)\)，则：</p>
                 <div class="formula">\[\mathbf m=(1,0,0)\times(0,1,0)=(0,0,1),\qquad
                 A=\frac12.\]</div>
@@ -69,7 +69,7 @@
                 把面索引改成 \((0,2,1)\)，叉积变成 \((0,0,-1)\)，面积不变。
                 若背面剔除规定正面为逆时针，那么这一面会从正面集合中消失。</p>
                 <p>四面体中每个顶点邻接 3 个面。正四面体的三个相邻面法线对称求和后，
-                方向从质心指向该顶点；这就是平滑顶点法线的几何直觉。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">伪代码与实现映射</div><div class="prose"><h2>一次遍历同时检查边与法线</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
+                方向从质心指向该顶点；这就是平滑顶点法线的几何直觉。</p></div></section><section class="section chapter-section" id="pseudocode"><div class="section-label">6.6 · 伪代码与实现映射</div><div class="prose"><h2>一次遍历同时检查边与法线</h2><div class="code-card"><div class="code-toolbar"><span>PYTHON · 概念伪代码</span><button class="copy-button" type="button" data-copy>复制</button></div>
                 <pre><code>edges = {}
 vertex_sums = [zero3() for _ in vertices]
 for face in faces:
@@ -83,23 +83,23 @@ for face in faces:
 
 manifold = all(len(incident) == 2 for incident in edges.values())</code></pre></div>
                 <p>这里直接用未归一化叉积累加，已经隐式包含面积权重。
-                若面已经反向，应先决定是否修复索引，还是把反向保留为双面材质的特征；不要偷偷取绝对值掩盖问题。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">自测</div><div class="prose"><h2>区分拓扑、几何与属性</h2><details><summary>问题 1：翻转一个三角形的索引会改变 V、E、F 吗？</summary>
+                若面已经反向，应先决定是否修复索引，还是把反向保留为双面材质的特征；不要偷偷取绝对值掩盖问题。</p></div></section><section class="section chapter-section" id="self-test"><div class="section-label">6.7 · 自测</div><div class="prose"><h2>区分拓扑、几何与属性</h2><details><summary>问题 1：翻转一个三角形的索引会改变 V、E、F 吗？</summary>
                 <p><strong>答案：</strong>不会，但会改变绕序、面法线和背面可见性。</p></details>
                 <details><summary>问题 2：球面网格为什么可能不满足每条边恰好两个面？</summary>
                 <p><strong>答案：</strong>如果极点或纹理接缝处复制了顶点，却没有正确连接索引，就会出现边界边或非流形边。</p></details>
                 <details><summary>问题 3：为什么顶点法线常用面积加权？</summary>
-                <p><strong>答案：</strong>大三角形覆盖更大表面，对局部方向应贡献更多；叉积模长天然包含两倍面积。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">常见错误与调试</div><div class="prose"><h2>黑斑、裂缝与法线翻转</h2><ol class="debug-list"><li><strong>法线随机闪烁：</strong>检查退化面积是否接近零，并检查面索引是否重复。</li>
+                <p><strong>答案：</strong>大三角形覆盖更大表面，对局部方向应贡献更多；叉积模长天然包含两倍面积。</p></details></div></section><section class="section chapter-section" id="debugging"><div class="section-label">6.8 · 常见错误与调试</div><div class="prose"><h2>黑斑、裂缝与法线翻转</h2><ol class="debug-list"><li><strong>法线随机闪烁：</strong>检查退化面积是否接近零，并检查面索引是否重复。</li>
                 <li><strong>相邻面明暗断裂：</strong>可能是有意硬边，也可能共享了本不该共享的顶点法线。</li>
                 <li><strong>表面出现黑洞：</strong>优先检查背面剔除方向与统一绕序。</li>
                 <li><strong>Euler 对不上：</strong>统计无序边，检查重复面、缺失面和边界边。</li>
                 <li><strong>平滑球出现折痕：</strong>检查极点是否复制了顶点却没有合并法线。</li></ol>
-                <p>把法线画成短箭头，通常比只观察颜色更容易定位问题。颜色还会受到光照、材质和深度影响，法线箭头则直接显示数据本身。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">实现状态</div><div class="prose"><h2>拓扑概念实验与当前逐面着色</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验用四面体展示 \(V-E+F=2\)，
+                <p>把法线画成短箭头，通常比只观察颜色更容易定位问题。颜色还会受到光照、材质和深度影响，法线箭头则直接显示数据本身。</p></div></section><section class="section chapter-section" id="status"><div class="section-label">6.9 · 实现状态</div><div class="prose"><h2>拓扑概念实验与当前逐面着色</h2><p><span class="status-pill">浏览器概念实验</span> 本章实验用四面体展示 \(V-E+F=2\)，
                 可翻转面绕序，并比较面法线与面积加权顶点法线。投影仅用于观察，不改变三维叉积。</p>
                 <p><span class="status-pill">现有 RenderTorch</span>
                 <code>renderer/pipeline.py</code> 在着色时对每个面前三个世界坐标计算叉积并归一化，
                 当前是逐面法线；<code>MeshResource</code> 尚不保存独立法线属性。</p>
                 <p><span class="status-pill">后续实现路线</span> 可为 <code>MeshResource</code> 增加顶点法线、UV 和硬边标记，
-                并在导入阶段验证边邻接与退化三角形。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：顶点与面拓扑，无独立法线属性</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：逐面叉积法线与着色</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="topology-demo" data-demo="topology-demo"><h3>四面体拓扑、绕序与法线</h3><p>翻转一个面的绕序，切换面法线和顶点法线，核对 V/E/F 与 Euler 示性数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter05.html"><small>← 上一章</small>几何图元与网格表示</a><a href="chapter07.html"><small>下一章 →</small>参数曲线：Bézier、B-spline 与 NURBS 概念</a></nav></article>
+                并在导入阶段验证边邻接与退化三角形。</p></div></section><section class="section chapter-section" id="sources"><div class="section-label">6.10 · 源码映射</div><div class="prose"><h2>阅读当前项目的真实实现</h2><div class="source-grid"><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/core/scene.py"><span>core/scene.py</span><small>现有实现：顶点与面拓扑，无独立法线属性</small>↗</a><a class="source-link" href="https://github.com/Zhenghong-Liu/RenderTorch/blob/feat/m1-qt-minimal-loop/renderer/pipeline.py"><span>renderer/pipeline.py</span><small>现有实现：逐面叉积法线与着色</small>↗</a></div></div></section><section class="section chapter-section" id="demo"><div class="section-label">6.11 · 交互实验</div><div class="prose"><h2>让状态变化看得见</h2><div class="demo-mount" id="topology-demo" data-demo="topology-demo"><h3>四面体拓扑、绕序与法线</h3><p>翻转一个面的绕序，切换面法线和顶点法线，核对 V/E/F 与 Euler 示性数。</p></div></div></section><nav class="page-nav" aria-label="章节导航"><a href="chapter05.html"><small>← 上一章</small>几何图元与网格表示</a><a href="chapter07.html"><small>下一章 →</small>参数曲线：Bézier、B-spline 与 NURBS 概念</a></nav></article>
     </main>
   </div>
   <footer class="site-footer">RenderTorch · 从像素到物理的中文交互教材 · <a href="https://github.com/Zhenghong-Liu/RenderTorch">GitHub 源码</a></footer>
